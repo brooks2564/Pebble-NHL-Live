@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>NHL Live Settings</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#0a0a0a;color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding-bottom:40px}
+    .hdr{background:#111;border-bottom:1px solid #222;padding:20px;text-align:center;position:sticky;top:0;z-index:10}
+    .hdr h1{font-size:18px;font-weight:700;letter-spacing:3px;color:#fff}
+    .hdr p{font-size:11px;color:#555;letter-spacing:1px;margin-top:4px}
+    .body{padding:24px 20px 0}
+    .lbl{font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#555;margin-bottom:8px}
+    select{width:100%;padding:12px;background:#1a1a1a;border:1px solid #333;border-radius:8px;color:#fff;font-size:16px;outline:none;-webkit-appearance:none;appearance:none}
+    .arrow{position:relative}
+    .arrow::after{content:"▼";position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#666;pointer-events:none;font-size:12px}
+    .toggle-row{display:flex;align-items:center;justify-content:space-between;background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:14px 16px;margin-top:16px}
+    .toggle-label{font-size:15px;color:#f0f0f0}
+    .toggle-sub{font-size:11px;color:#555;margin-top:2px}
+    .switch{position:relative;width:51px;height:31px;flex-shrink:0}
+    .switch input{opacity:0;width:0;height:0}
+    .slider{position:absolute;inset:0;background:#333;border-radius:31px;transition:.3s;cursor:pointer}
+    .slider:before{content:"";position:absolute;width:25px;height:25px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}
+    input:checked + .slider{background:#e8a000}
+    input:checked + .slider:before{transform:translateX(20px)}
+    .btn{display:block;width:100%;margin-top:24px;padding:15px;background:#e8a000;color:#000;font-size:16px;font-weight:800;letter-spacing:1px;text-transform:uppercase;border:none;border-radius:12px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+    .btn:active{background:#c88800}
+    .coffee{display:block;text-align:center;margin-top:20px;color:#555;font-size:12px;text-decoration:none;letter-spacing:1px;}
+    .coffee span{color:#e8a000;}
+    .divider{height:1px;background:#1e1e1e;margin:24px 0 0}
+    .setting-row{margin-top:14px}
+    .setting-label{font-size:15px;color:#f0f0f0;margin-bottom:6px}
+    .setting-sub{font-size:11px;color:#555;margin-bottom:8px}
+  </style>
+</head>
+<body>
+  <div class="hdr">
+    <h1>🏒 NHL LIVE</h1>
+    <p>WATCHFACE SETTINGS</p>
+  </div>
+  <div class="body">
+
+    <div class="lbl">Favorite Team</div>
+    <div class="arrow">
+      <select id="team">
+        <option value="0">ANA - Ducks</option>
+        <option value="1">BOS - Bruins</option>
+        <option value="2">BUF - Sabres</option>
+        <option value="3">CAR - Hurricanes</option>
+        <option value="4">CBJ - Blue Jackets</option>
+        <option value="5">CGY - Flames</option>
+        <option value="6">CHI - Blackhawks</option>
+        <option value="7">COL - Avalanche</option>
+        <option value="8">DAL - Stars</option>
+        <option value="9">DET - Red Wings</option>
+        <option value="10">EDM - Oilers</option>
+        <option value="11">FLA - Panthers</option>
+        <option value="12">LAK - Kings</option>
+        <option value="13">MIN - Wild</option>
+        <option value="14">MTL - Canadiens</option>
+        <option value="15">NJD - Devils</option>
+        <option value="16">NSH - Predators</option>
+        <option value="17">NYI - Islanders</option>
+        <option value="18">NYR - Rangers</option>
+        <option value="19">OTT - Senators</option>
+        <option value="20">PHI - Flyers</option>
+        <option value="21">PIT - Penguins</option>
+        <option value="22">SEA - Kraken</option>
+        <option value="23">SJS - Sharks</option>
+        <option value="24">STL - Blues</option>
+        <option value="25">TBL - Lightning</option>
+        <option value="26">TOR - Maple Leafs</option>
+        <option value="27">UTA - Hockey Club</option>
+        <option value="28">VAN - Canucks</option>
+        <option value="29">VGK - Golden Knights</option>
+        <option value="30">WSH - Capitals</option>
+        <option value="31">WPG - Jets</option>
+      </select>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="lbl" style="margin-top:24px">Notifications</div>
+    <div class="toggle-row">
+      <div>
+        <div class="toggle-label">Vibrate on Score</div>
+        <div class="toggle-sub">Pulse when your team scores a goal</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="vibrate" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="toggle-row" style="margin-top:10px">
+      <div>
+        <div class="toggle-label">Battery Bar</div>
+        <div class="toggle-sub">Show battery level at bottom of screen</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="batteryBar" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="lbl" style="margin-top:24px">Display</div>
+
+    <div class="setting-row">
+      <div class="setting-label">Timezone</div>
+      <div class="setting-sub">Used to display correct game times</div>
+      <div class="arrow">
+        <select id="tzOffset">
+          <option value="-5">ET — Eastern (UTC-5)</option>
+          <option value="-6">CT — Central (UTC-6)</option>
+          <option value="-7">MT — Mountain (UTC-7)</option>
+          <option value="-8">PT — Pacific (UTC-8)</option>
+          <option value="0">UK — GMT/BST (UTC+0)</option>
+          <option value="1">CET — Central Europe (UTC+1)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="setting-row" style="margin-top:16px">
+      <div class="setting-label">Ticker Speed</div>
+      <div class="setting-sub">How long each score is shown before cycling to the next</div>
+      <div class="arrow">
+        <select id="tickerSpeed">
+          <option value="5000">5 seconds (default)</option>
+          <option value="10000">10 seconds</option>
+          <option value="30000">30 seconds</option>
+          <option value="60000">60 seconds</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="text-align:center;margin-top:24px">
+      <a href="https://venmo.com/brooman-inks" target="_blank"
+         style="color:#e8a000;font-size:15px;text-decoration:none;font-weight:600;letter-spacing:1px">
+        Buy me a coffee &#9749;
+      </a>
+    </div>
+
+    <button class="btn" id="save">Save &amp; Close</button>
+  </div>
+
+  <script>
+    // Hash format: #teamIdx|vibrate|batteryBar|tzOffset|tickerSpeed
+    var hash   = location.hash.replace("#", "");
+    var parts  = hash.split("|");
+    var savedIdx        = parseInt(parts[0]);
+    var savedVib        = parts[1] !== "0";
+    var savedBat        = parts[2] !== "0";
+    var savedTz         = parts[3] !== undefined ? parseInt(parts[3]) : -5;
+    var savedTickerSpd  = parts[4] !== undefined ? parseInt(parts[4]) : 5000;
+
+    if (!isNaN(savedIdx) && savedIdx >= 0 && savedIdx <= 31) {
+      document.getElementById("team").value = String(savedIdx);
+    }
+    document.getElementById("vibrate").checked    = savedVib;
+    document.getElementById("batteryBar").checked = savedBat;
+
+    var tzSel = document.getElementById("tzOffset");
+    for (var i = 0; i < tzSel.options.length; i++) {
+      if (parseInt(tzSel.options[i].value) === savedTz) { tzSel.selectedIndex = i; break; }
+    }
+
+    var spdSel = document.getElementById("tickerSpeed");
+    for (var i = 0; i < spdSel.options.length; i++) {
+      if (parseInt(spdSel.options[i].value) === savedTickerSpd) { spdSel.selectedIndex = i; break; }
+    }
+
+    document.getElementById("save").addEventListener("click", function() {
+      var idx        = parseInt(document.getElementById("team").value);
+      var vibrate    = document.getElementById("vibrate").checked    ? 1 : 0;
+      var batteryBar = document.getElementById("batteryBar").checked ? 1 : 0;
+      var tzOffset   = parseInt(document.getElementById("tzOffset").value);
+      var tickerSpeed= parseInt(document.getElementById("tickerSpeed").value);
+      var payload = JSON.stringify({
+        teamIdx: idx,
+        vibrate: vibrate,
+        batteryBar: batteryBar,
+        tzOffset: tzOffset,
+        tickerSpeed: tickerSpeed
+      });
+      window.location.href = "pebblejs://close#" + encodeURIComponent(payload);
+    });
+  </script>
+</body>
+</html>
