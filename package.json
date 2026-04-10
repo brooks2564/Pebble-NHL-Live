@@ -1,0 +1,61 @@
+{
+  "name": "Pebble-NHL-Live",
+  "author": "brooks2564",
+  "version": "1.0.0",
+  "keywords": [
+    "pebble-app",
+    "watchface"
+  ],
+  "pebble": {
+    "sdk": {
+      "major": 4,
+      "minor": 3
+    },
+    "uuid": "b3c4d5e6-f7a8-4901-b234-c5d6e7f8a901",
+    "displayName": "NHL Live",
+    "shortName": "NHL Live",
+    "versionLabel": "1.0",
+    "appKeys": {
+      "KEY_AWAY_ABBR": 1,
+      "KEY_HOME_ABBR": 2,
+      "KEY_AWAY_SCORE": 3,
+      "KEY_HOME_SCORE": 4,
+      "KEY_PERIOD": 5,
+      "KEY_PERIOD_TIME": 6,
+      "KEY_STATUS": 10,
+      "KEY_TEAM_IDX": 11,
+      "KEY_START_TIME": 12,
+      "KEY_AWAY_WINS": 13,
+      "KEY_AWAY_LOSSES": 14,
+      "KEY_HOME_WINS": 15,
+      "KEY_HOME_LOSSES": 16,
+      "KEY_VIBRATE": 17,
+      "KEY_AWAY_SHOTS": 18,
+      "KEY_HOME_SHOTS": 19,
+      "KEY_LAST_GOAL": 20,
+      "KEY_AWAY_SKATERS": 21,
+      "KEY_HOME_SKATERS": 22,
+      "KEY_PENALTY_SECS": 23,
+      "KEY_NEXT_GAME": 24,
+      "KEY_BATTERY_BAR": 25,
+      "KEY_TICKER": 26,
+      "KEY_TZ_OFFSET": 31,
+      "KEY_TICKER_SPEED": 32
+    },
+    "capabilities": [
+      "configurable"
+    ],
+    "resources": {
+      "media": []
+    },
+    "targetPlatforms": [
+      "aplite",
+      "basalt",
+      "chalk",
+      "diorite",
+      "emery",
+      "flint",
+      "gabbro"
+    ]
+  }
+}
