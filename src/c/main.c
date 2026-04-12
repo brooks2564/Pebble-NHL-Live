@@ -87,6 +87,9 @@ static int  s_prev_score      = -1;
 static bool s_i_am_away;
 static int  s_ticker_speed    = 5000;
 
+static GBitmap *s_bmp_stick   = NULL;
+static GBitmap *s_bmp_cleaner = NULL;
+
 static void request_game_data(void);
 
 // ── Ticker ─────────────────────────────────────────────────────────────────
@@ -200,65 +203,6 @@ static void draw_dots(GContext *ctx, int x, int y, int n, int filled) {
       graphics_draw_circle(ctx, p, 3);
     }
   }
-}
-
-// ── 8-bit icons ────────────────────────────────────────────────────────────
-static void draw_icon_stick_puck(GContext *ctx, int ix, int iy) {
-  graphics_context_set_fill_color(ctx, GColorWhite);
-  // Shaft: 10 diagonal segments, 4×3px each, top-right to lower-left
-  for (int i = 0; i < 10; i++)
-    graphics_fill_rect(ctx, GRect(ix+44-i*4, iy+i*2, 4, 3), 0, GCornerNone);
-  // Blade
-  graphics_fill_rect(ctx, GRect(ix,    iy+22, 22, 3), 0, GCornerNone);
-  // Puck body
-  graphics_fill_rect(ctx, GRect(ix+42, iy+13, 16, 10), 0, GCornerNone);
-  // Puck corner cuts
-  graphics_context_set_fill_color(ctx, GColorBlack);
-  graphics_fill_rect(ctx, GRect(ix+42, iy+13, 2, 2), 0, GCornerNone);
-  graphics_fill_rect(ctx, GRect(ix+56, iy+13, 2, 2), 0, GCornerNone);
-  graphics_fill_rect(ctx, GRect(ix+42, iy+21, 2, 2), 0, GCornerNone);
-  graphics_fill_rect(ctx, GRect(ix+56, iy+21, 2, 2), 0, GCornerNone);
-}
-
-static void draw_icon_zamboni(GContext *ctx, int ix, int iy) {
-  graphics_context_set_fill_color(ctx, GColorWhite);
-  // Exhaust pipe
-  graphics_fill_rect(ctx, GRect(ix+46, iy+0,  4, 6), 0, GCornerNone);
-  // Steam puffs
-  graphics_fill_rect(ctx, GRect(ix+43, iy+0,  2, 2), 0, GCornerNone);
-  graphics_fill_rect(ctx, GRect(ix+51, iy+0,  2, 2), 0, GCornerNone);
-  // Cab
-  graphics_fill_rect(ctx, GRect(ix+26, iy+2, 24, 8), 0, GCornerNone);
-  // Cab window (cut)
-  graphics_context_set_fill_color(ctx, GColorBlack);
-  graphics_fill_rect(ctx, GRect(ix+30, iy+3,  6, 5), 0, GCornerNone);
-  // Main body
-  graphics_context_set_fill_color(ctx, GColorWhite);
-  graphics_fill_rect(ctx, GRect(ix+0,  iy+8, 54,10), 0, GCornerNone);
-  // Front scraper arm
-  graphics_fill_rect(ctx, GRect(ix+0,  iy+16, 4, 4), 0, GCornerNone);
-  // Rear resurfacing bar
-  graphics_fill_rect(ctx, GRect(ix+50, iy+16, 4, 4), 0, GCornerNone);
-  // Left wheel
-  graphics_fill_rect(ctx, GRect(ix+6,  iy+18,14, 8), 0, GCornerNone);
-  graphics_context_set_fill_color(ctx, GColorBlack);
-  graphics_fill_rect(ctx, GRect(ix+6,  iy+18, 2, 2), 0, GCornerNone);
-  graphics_fill_rect(ctx, GRect(ix+18, iy+18, 2, 2), 0, GCornerNone);
-  graphics_fill_rect(ctx, GRect(ix+6,  iy+24, 2, 2), 0, GCornerNone);
-  graphics_fill_rect(ctx, GRect(ix+18, iy+24, 2, 2), 0, GCornerNone);
-  graphics_fill_rect(ctx, GRect(ix+10, iy+20, 6, 4), 0, GCornerNone);
-  graphics_context_set_fill_color(ctx, GColorWhite);
-  graphics_fill_rect(ctx, GRect(ix+12, iy+21, 2, 2), 0, GCornerNone);
-  // Right wheel
-  graphics_fill_rect(ctx, GRect(ix+34, iy+18,14, 8), 0, GCornerNone);
-  graphics_context_set_fill_color(ctx, GColorBlack);
-  graphics_fill_rect(ctx, GRect(ix+34, iy+18, 2, 2), 0, GCornerNone);
-  graphics_fill_rect(ctx, GRect(ix+46, iy+18, 2, 2), 0, GCornerNone);
-  graphics_fill_rect(ctx, GRect(ix+34, iy+24, 2, 2), 0, GCornerNone);
-  graphics_fill_rect(ctx, GRect(ix+46, iy+24, 2, 2), 0, GCornerNone);
-  graphics_fill_rect(ctx, GRect(ix+38, iy+20, 6, 4), 0, GCornerNone);
-  graphics_context_set_fill_color(ctx, GColorWhite);
-  graphics_fill_rect(ctx, GRect(ix+40, iy+21, 2, 2), 0, GCornerNone);
 }
 
 // ── Power Play Display ─────────────────────────────────────────────────────
@@ -467,14 +411,13 @@ static void canvas_update(Layer *layer, GContext *ctx) {
   // Power play display
   draw_power_play(ctx, hpad, by+78);
 
-  // 8-bit icon: stick+puck during play, zamboni during intermission
+  // Icon: stick+puck during play, ice cleaner during intermission
   {
-    int ix = w - 60 - hpad;
-    int iy = by + 79;
-    if (strcmp(s_period_time, "INT") == 0)
-      draw_icon_zamboni(ctx, ix, iy);
-    else
-      draw_icon_stick_puck(ctx, ix, iy);
+    GBitmap *icon = (strcmp(s_period_time, "INT") == 0) ? s_bmp_cleaner : s_bmp_stick;
+    if (icon) {
+      graphics_context_set_compositing_mode(ctx, GCompOpOr);
+      graphics_draw_bitmap_in_rect(ctx, icon, GRect(w - 62 - hpad, by + 79, 60, 26));
+    }
   }
 }
 
@@ -590,6 +533,9 @@ static void window_load(Window *window) {
   GRect bounds=layer_get_bounds(root);
   int w=bounds.size.w;
 
+  s_bmp_stick   = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_STICK_PUCK);
+  s_bmp_cleaner = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_ICE_CLEANER);
+
   s_canvas=layer_create(bounds);
   layer_set_update_proc(s_canvas,canvas_update);
   layer_add_child(root,s_canvas);
@@ -617,6 +563,8 @@ static void window_unload(Window *window) {
   if(s_ticker_next){text_layer_destroy(s_ticker_next);s_ticker_next=NULL;}
   if(s_ticker_clip){layer_destroy(s_ticker_clip);     s_ticker_clip=NULL;}
   if(s_canvas)     {layer_destroy(s_canvas);          s_canvas=NULL;}
+  if(s_bmp_stick)  {gbitmap_destroy(s_bmp_stick);     s_bmp_stick=NULL;}
+  if(s_bmp_cleaner){gbitmap_destroy(s_bmp_cleaner);   s_bmp_cleaner=NULL;}
 }
 
 static void init(void) {

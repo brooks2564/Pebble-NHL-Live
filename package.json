@@ -53,7 +53,18 @@
       "TICKER_SPEED": 32
     },
     "resources": {
-      "media": []
+      "media": [
+        {
+          "type": "bitmap",
+          "name": "IMAGE_STICK_PUCK",
+          "file": "images/stick_puck.png"
+        },
+        {
+          "type": "bitmap",
+          "name": "IMAGE_ICE_CLEANER",
+          "file": "images/ice_cleaner.png"
+        }
+      ]
     }
   }
 }
