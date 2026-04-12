@@ -128,10 +128,10 @@ function penaltyTimeToSecs(timeStr) {
 // e.g. "1551" = even, "1451" = home PP (home 5, away 4)
 // Returns {homeSkaters, awaySkaters} (skaters only, not goalie)
 function parseSituationCode(code) {
+  // Format: [awayGoalie][awaySkaters][homeSkaters][homeGoalie]
   if (!code || code.length < 4) return { homeSkaters: 5, awaySkaters: 5 };
-  var h = parseInt(code[1]) || 5;
-  var a = parseInt(code[2]) || 5;
-  // Clamp to valid range
+  var a = parseInt(code[1]) || 5;  // code[1] = away skaters
+  var h = parseInt(code[2]) || 5;  // code[2] = home skaters
   if (h < 3 || h > 6) h = 5;
   if (a < 3 || a > 6) a = 5;
   return { homeSkaters: h, awaySkaters: a };

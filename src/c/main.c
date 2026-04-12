@@ -332,42 +332,15 @@ static void canvas_update(Layer *layer, GContext *ctx) {
   graphics_draw_text(ctx, s_home_abbr, f24,
     GRect(w-44-hpad, by-8, 44, 22), GTextOverflowModeTrailingEllipsis, GTextAlignmentRight, NULL);
 
-  // Records — during a power play, replace the PP team's record with "PP" in yellow
-  {
-    bool is_pp = (strcmp(s_status,"live")==0) && (s_away_skaters != s_home_skaters);
-    bool away_pp = (s_away_skaters > s_home_skaters);
-    char rec[10];
-    // Away side
-    if (is_pp && away_pp) {
-#ifdef PBL_COLOR
-      graphics_context_set_text_color(ctx, GColorYellow);
-#else
-      graphics_context_set_text_color(ctx, GColorWhite);
-#endif
-      graphics_draw_text(ctx, "PP", f14,
-        GRect(hpad, by+14, 44, 14), GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
-    } else {
-      graphics_context_set_text_color(ctx, GColorLightGray);
-      snprintf(rec, sizeof(rec), "%d-%d", s_away_wins, s_away_losses);
-      graphics_draw_text(ctx, rec, f14,
-        GRect(hpad, by+14, 44, 14), GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
-    }
-    // Home side
-    if (is_pp && !away_pp) {
-#ifdef PBL_COLOR
-      graphics_context_set_text_color(ctx, GColorYellow);
-#else
-      graphics_context_set_text_color(ctx, GColorWhite);
-#endif
-      graphics_draw_text(ctx, "PP", f14,
-        GRect(w-46-hpad, by+14, 46, 14), GTextOverflowModeWordWrap, GTextAlignmentRight, NULL);
-    } else {
-      graphics_context_set_text_color(ctx, GColorLightGray);
-      snprintf(rec, sizeof(rec), "%d-%d", s_home_wins, s_home_losses);
-      graphics_draw_text(ctx, rec, f14,
-        GRect(w-46-hpad, by+14, 46, 14), GTextOverflowModeWordWrap, GTextAlignmentRight, NULL);
-    }
-  }
+  // Records
+  graphics_context_set_text_color(ctx, GColorLightGray);
+  char rec[10];
+  snprintf(rec, sizeof(rec), "%d-%d", s_away_wins, s_away_losses);
+  graphics_draw_text(ctx, rec, f14,
+    GRect(hpad, by+14, 44, 14), GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
+  snprintf(rec, sizeof(rec), "%d-%d", s_home_wins, s_home_losses);
+  graphics_draw_text(ctx, rec, f14,
+    GRect(w-46-hpad, by+14, 46, 14), GTextOverflowModeWordWrap, GTextAlignmentRight, NULL);
 
   // Period display
   char per[20];
@@ -386,6 +359,23 @@ static void canvas_update(Layer *layer, GContext *ctx) {
   graphics_context_set_text_color(ctx, GColorYellow);
   graphics_draw_text(ctx, per, f18,
     GRect(0, by+26, w, 20), GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+
+  // PP indicator on the period line
+  if (strcmp(s_status, "live") == 0 && s_away_skaters != s_home_skaters) {
+    bool away_pp = (s_away_skaters > s_home_skaters);
+#ifdef PBL_COLOR
+    graphics_context_set_text_color(ctx, GColorYellow);
+#else
+    graphics_context_set_text_color(ctx, GColorWhite);
+#endif
+    if (away_pp) {
+      graphics_draw_text(ctx, "PP", f14,
+        GRect(hpad, by+30, 20, 14), GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
+    } else {
+      graphics_draw_text(ctx, "PP", f14,
+        GRect(w-20-hpad, by+30, 20, 14), GTextOverflowModeWordWrap, GTextAlignmentRight, NULL);
+    }
+  }
 
   // Next game (pre/final)
   if (strcmp(s_status,"final")==0 && s_next_game[0]) {
