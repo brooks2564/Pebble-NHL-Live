@@ -59,6 +59,12 @@
       "media": [
         {
           "type": "bitmap",
+          "name": "IMAGE_MENU_ICON",
+          "file": "images/menu_icon.png",
+          "menuIcon": true
+        },
+        {
+          "type": "bitmap",
           "name": "IMAGE_STICK_PUCK",
           "file": "images/stick_puck.png"
         },
