@@ -343,14 +343,16 @@ static void canvas_update(Layer *layer, GContext *ctx) {
     GRect(w-46-hpad, by+14, 46, 14), GTextOverflowModeWordWrap, GTextAlignmentRight, NULL);
 
   // Period display
-  char per[16];
+  char per[20];
   if (strcmp(s_status, "live") == 0) {
     const char *per_names[] = {"1st","2nd","3rd","OT","SO"};
     int pidx = (s_period >= 1 && s_period <= 5) ? s_period-1 : 0;
+    bool is_pp_live = (s_away_skaters != s_home_skaters);
+    const char *sit = is_pp_live ? " PP" : " 5v5";
     if (s_period_time[0])
-      snprintf(per, sizeof(per), "%s %s", per_names[pidx], s_period_time);
+      snprintf(per, sizeof(per), "%s %s%s", per_names[pidx], s_period_time, sit);
     else
-      snprintf(per, sizeof(per), "%s", per_names[pidx]);
+      snprintf(per, sizeof(per), "%s%s", per_names[pidx], sit);
   } else if (strcmp(s_status, "pre") == 0) {
     snprintf(per, sizeof(per), "%s", s_start_time[0] ? s_start_time : "Pre-Game");
   } else {
@@ -378,8 +380,7 @@ static void canvas_update(Layer *layer, GContext *ctx) {
       GRect(hpad, by+46, w-hpad*2, 14), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
   }
 
-  // Shots on goal + situation label (5v5 or PP) right-aligned
-  bool is_pp_live = (s_away_skaters != s_home_skaters);
+  // Shots on goal
   graphics_context_set_text_color(ctx, GColorMediumAquamarine);
   graphics_draw_text(ctx, "SOG", f14,
     GRect(hpad, by+62, 30, 14), GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
@@ -387,14 +388,7 @@ static void canvas_update(Layer *layer, GContext *ctx) {
   snprintf(sog, sizeof(sog), "%d | %d", s_away_shots, s_home_shots);
   graphics_context_set_text_color(ctx, GColorWhite);
   graphics_draw_text(ctx, sog, f14,
-    GRect(hpad+32, by+62, w/2 - hpad - 32, 14), GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
-#ifdef PBL_COLOR
-  graphics_context_set_text_color(ctx, is_pp_live ? GColorYellow : GColorLightGray);
-#else
-  graphics_context_set_text_color(ctx, GColorWhite);
-#endif
-  graphics_draw_text(ctx, is_pp_live ? "PP" : "5v5", f14,
-    GRect(w*2/3, by+62, w/3 - hpad, 14), GTextOverflowModeWordWrap, GTextAlignmentRight, NULL);
+    GRect(hpad+32, by+62, w-hpad-34, 14), GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
 
   // Power play display
   draw_power_play(ctx, hpad, by+78);
