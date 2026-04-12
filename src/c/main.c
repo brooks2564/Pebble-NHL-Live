@@ -189,6 +189,18 @@ static GColor team_color(const char *abbr) {
   if (strcmp(abbr,"WPG")==0) return GColorCobaltBlue;
   return GColorWhite;
 }
+
+static void draw_team_text(GContext *ctx, const char *text, GFont font, GRect rect,
+                           GTextOverflowMode overflow, GTextAlignment align, const char *abbr) {
+  GColor color = team_color(abbr);
+  GRect shadow = rect;
+  shadow.origin.x += 1;
+  shadow.origin.y += 1;
+  graphics_context_set_text_color(ctx, GColorWhite);
+  graphics_draw_text(ctx, text, font, shadow, overflow, align, NULL);
+  graphics_context_set_text_color(ctx, color);
+  graphics_draw_text(ctx, text, font, rect, overflow, align, NULL);
+}
 #endif
 
 // ── Dots ───────────────────────────────────────────────────────────────────
@@ -325,6 +337,17 @@ static void canvas_update(Layer *layer, GContext *ctx) {
   }
 
   // Score
+#ifdef PBL_COLOR
+  draw_team_text(ctx, s_away_abbr, f24, GRect(hpad, by-8, 44, 22),
+    GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, s_away_abbr);
+  char sc[16];
+  snprintf(sc, sizeof(sc), "%d - %d", s_away_score, s_home_score);
+  graphics_context_set_text_color(ctx, GColorWhite);
+  graphics_draw_text(ctx, sc, f28,
+    GRect(w/2-28, by-8, 56, 28), GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+  draw_team_text(ctx, s_home_abbr, f24, GRect(w-44-hpad, by-8, 44, 22),
+    GTextOverflowModeTrailingEllipsis, GTextAlignmentRight, s_home_abbr);
+#else
   graphics_context_set_text_color(ctx, GColorWhite);
   graphics_draw_text(ctx, s_away_abbr, f24,
     GRect(hpad, by-8, 44, 22), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
@@ -334,6 +357,7 @@ static void canvas_update(Layer *layer, GContext *ctx) {
     GRect(w/2-28, by-8, 56, 28), GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
   graphics_draw_text(ctx, s_home_abbr, f24,
     GRect(w-44-hpad, by-8, 44, 22), GTextOverflowModeTrailingEllipsis, GTextAlignmentRight, NULL);
+#endif
 
   // Records
   graphics_context_set_text_color(ctx, GColorLightGray);
