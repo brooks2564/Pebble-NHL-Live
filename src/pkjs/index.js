@@ -24,6 +24,8 @@ var KEY_NEXT_GAME    = 24;
 var KEY_BATTERY_BAR  = 25;
 var KEY_TICKER        = 26;
 var KEY_SERIES_STATUS = 27;
+var KEY_AWAY_OTL      = 28;
+var KEY_HOME_OTL      = 29;
 var KEY_TZ_OFFSET     = 31;
 var KEY_TICKER_SPEED = 32;
 
@@ -248,15 +250,15 @@ function fetchStandings(awayAbbr, homeAbbr, callback) {
     if (xhr.status !== 200) { callback(null); return; }
     try {
       var list = JSON.parse(xhr.responseText).standings || [];
-      var r = { awayWins:0, awayLosses:0, homeWins:0, homeLosses:0 };
+      var r = { awayWins:0, awayLosses:0, awayOtl:0, homeWins:0, homeLosses:0, homeOtl:0 };
       for (var i = 0; i < list.length; i++) {
         var t    = list[i];
         var abbr = (t.teamAbbrev && t.teamAbbrev.default) || "";
-        if (abbr === awayAbbr) { r.awayWins = t.wins||0; r.awayLosses = t.losses||0; }
-        if (abbr === homeAbbr) { r.homeWins = t.wins||0; r.homeLosses = t.losses||0; }
+        if (abbr === awayAbbr) { r.awayWins = t.wins||0; r.awayLosses = t.losses||0; r.awayOtl = t.otLosses||0; }
+        if (abbr === homeAbbr) { r.homeWins = t.wins||0; r.homeLosses = t.losses||0; r.homeOtl = t.otLosses||0; }
       }
-      console.log("[NHL] standings " + awayAbbr + " " + r.awayWins + "-" + r.awayLosses +
-                  "  " + homeAbbr + " " + r.homeWins + "-" + r.homeLosses);
+      console.log("[NHL] standings " + awayAbbr + " " + r.awayWins + "-" + r.awayLosses + "-" + r.awayOtl +
+                  "  " + homeAbbr + " " + r.homeWins + "-" + r.homeLosses + "-" + r.homeOtl);
       callback(r);
     } catch(e) { console.log("[NHL] standings error: " + e); callback(null); }
   };
@@ -509,8 +511,10 @@ function processGameWeek(gameWeek, abbr) {
       if (stResult) {
         msg[KEY_AWAY_WINS]   = stResult.awayWins;
         msg[KEY_AWAY_LOSSES] = stResult.awayLosses;
+        msg[KEY_AWAY_OTL]    = stResult.awayOtl;
         msg[KEY_HOME_WINS]   = stResult.homeWins;
         msg[KEY_HOME_LOSSES] = stResult.homeLosses;
+        msg[KEY_HOME_OTL]    = stResult.homeOtl;
       }
       sendMessage(msg);
     }

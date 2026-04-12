@@ -25,6 +25,8 @@
 #define KEY_BATTERY_BAR   25
 #define KEY_TICKER        26
 #define KEY_SERIES_STATUS 27
+#define KEY_AWAY_OTL      28
+#define KEY_HOME_OTL      29
 #define KEY_TZ_OFFSET     31
 #define KEY_TICKER_SPEED  32
 
@@ -70,8 +72,10 @@ static char s_status[8]       = "off";
 static char s_start_time[10]  = "";
 static int  s_away_wins;
 static int  s_away_losses;
+static int  s_away_otl;
 static int  s_home_wins;
 static int  s_home_losses;
+static int  s_home_otl;
 static bool s_vibrate         = true;
 static int  s_away_shots;
 static int  s_home_shots;
@@ -407,13 +411,13 @@ static void canvas_update(Layer *layer, GContext *ctx) {
       GRect(hpad, by+14, w-hpad*2, 14), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
   } else {
     graphics_context_set_text_color(ctx, GColorLightGray);
-    char rec[10];
-    snprintf(rec, sizeof(rec), "%d-%d", s_away_wins, s_away_losses);
+    char rec[12];
+    snprintf(rec, sizeof(rec), "%d-%d-%d", s_away_wins, s_away_losses, s_away_otl);
     graphics_draw_text(ctx, rec, f14,
-      GRect(hpad, by+14, 44, 14), GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
-    snprintf(rec, sizeof(rec), "%d-%d", s_home_wins, s_home_losses);
+      GRect(hpad, by+14, 55, 14), GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
+    snprintf(rec, sizeof(rec), "%d-%d-%d", s_home_wins, s_home_losses, s_home_otl);
     graphics_draw_text(ctx, rec, f14,
-      GRect(w-46-hpad, by+14, 46, 14), GTextOverflowModeWordWrap, GTextAlignmentRight, NULL);
+      GRect(w-57-hpad, by+14, 55, 14), GTextOverflowModeWordWrap, GTextAlignmentRight, NULL);
   }
 
   // Period display
@@ -550,8 +554,10 @@ static void inbox_received(DictionaryIterator *iter, void *ctx) {
   if(t){strncpy(s_start_time,t->value->cstring,9);s_start_time[9]=0;}
   t = dict_find(iter, KEY_AWAY_WINS);   if(t) s_away_wins   =(int)t->value->int32;
   t = dict_find(iter, KEY_AWAY_LOSSES); if(t) s_away_losses =(int)t->value->int32;
+  t = dict_find(iter, KEY_AWAY_OTL);    if(t) s_away_otl    =(int)t->value->int32;
   t = dict_find(iter, KEY_HOME_WINS);   if(t) s_home_wins   =(int)t->value->int32;
   t = dict_find(iter, KEY_HOME_LOSSES); if(t) s_home_losses =(int)t->value->int32;
+  t = dict_find(iter, KEY_HOME_OTL);    if(t) s_home_otl    =(int)t->value->int32;
   t = dict_find(iter, KEY_VIBRATE);
   if(t){s_vibrate=(bool)t->value->int32;persist_write_bool(PERSIST_VIB,s_vibrate);}
   t = dict_find(iter, KEY_AWAY_SHOTS);  if(t) s_away_shots  =(int)t->value->int32;
@@ -605,7 +611,7 @@ static void inbox_received(DictionaryIterator *iter, void *ctx) {
       persist_write_int(PERSIST_TEAM,s_team_idx);
       strncpy(s_away_abbr,"---",4); strncpy(s_home_abbr,"---",4);
       s_away_score=s_home_score=0; s_period=0;
-      s_away_wins=s_away_losses=s_home_wins=s_home_losses=0;
+      s_away_wins=s_away_losses=s_away_otl=s_home_wins=s_home_losses=s_home_otl=0;
       s_away_shots=s_home_shots=0; s_away_skaters=s_home_skaters=5;
       s_penalty_secs=0; s_start_time[0]=s_last_goal[0]=s_next_game[0]=0;
       s_prev_score=-1;

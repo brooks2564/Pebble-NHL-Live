@@ -50,6 +50,8 @@
       "BATTERY_BAR":  25,
       "TICKER":       26,
       "SERIES_STATUS": 27,
+      "AWAY_OTL":      28,
+      "HOME_OTL":      29,
       "TZ_OFFSET":    31,
       "TICKER_SPEED": 32
     },
