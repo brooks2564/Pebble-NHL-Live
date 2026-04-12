@@ -202,6 +202,33 @@ static void draw_dots(GContext *ctx, int x, int y, int n, int filled) {
   }
 }
 
+// ── 8-bit icons ────────────────────────────────────────────────────────────
+static void draw_icon_stick_puck(GContext *ctx, int ix, int iy) {
+  graphics_context_set_fill_color(ctx, GColorWhite);
+  // Shaft: 7 diagonal 2×2 blocks, top-right to lower-left
+  for (int i = 0; i < 7; i++)
+    graphics_fill_rect(ctx, GRect(ix + 12 - i*2, iy + i*2, 2, 2), 0, GCornerNone);
+  // Blade: horizontal bar at bottom of shaft
+  graphics_fill_rect(ctx, GRect(ix, iy+14, 10, 2), 0, GCornerNone);
+  // Puck: small filled square beside the blade
+  graphics_fill_rect(ctx, GRect(ix+13, iy+12, 5, 4), 0, GCornerNone);
+}
+
+static void draw_icon_zamboni(GContext *ctx, int ix, int iy) {
+  graphics_context_set_fill_color(ctx, GColorWhite);
+  // Exhaust pipe
+  graphics_fill_rect(ctx, GRect(ix+14, iy,    2, 4), 0, GCornerNone);
+  // Cab (top section, right side)
+  graphics_fill_rect(ctx, GRect(ix+8,  iy+2,  8, 4), 0, GCornerNone);
+  // Front scraper (left protrusion)
+  graphics_fill_rect(ctx, GRect(ix,    iy+4,  2, 6), 0, GCornerNone);
+  // Main body
+  graphics_fill_rect(ctx, GRect(ix+2,  iy+4, 18, 6), 0, GCornerNone);
+  // Wheels
+  graphics_fill_rect(ctx, GRect(ix+3,  iy+10, 4, 4), 0, GCornerNone);
+  graphics_fill_rect(ctx, GRect(ix+13, iy+10, 4, 4), 0, GCornerNone);
+}
+
 // ── Power Play Display ─────────────────────────────────────────────────────
 // Two rows of skater dots (team color), PP/5v5+time to the right of dots
 static void draw_power_play(GContext *ctx, int x, int y) {
@@ -407,6 +434,16 @@ static void canvas_update(Layer *layer, GContext *ctx) {
 
   // Power play display
   draw_power_play(ctx, hpad, by+78);
+
+  // 8-bit icon: stick+puck during play, zamboni during intermission
+  {
+    int ix = w - 22 - hpad;
+    int iy = by + 79;
+    if (strcmp(s_period_time, "INT") == 0)
+      draw_icon_zamboni(ctx, ix, iy);
+    else
+      draw_icon_stick_puck(ctx, ix, iy);
+  }
 }
 
 // ── Clock ──────────────────────────────────────────────────────────────────
