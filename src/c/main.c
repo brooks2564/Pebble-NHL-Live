@@ -434,25 +434,6 @@ static void canvas_update(Layer *layer, GContext *ctx) {
   graphics_draw_text(ctx, per, f18,
     GRect(0, by+26, w, 20), GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
 
-  // Period progress bar
-  if (strcmp(s_status,"live")==0 && s_period>=1 && s_period<=4 &&
-      s_period_time[0] && strcmp(s_period_time,"INT")!=0) {
-    const char *pt = s_period_time;
-    int pm = 0, ps = 0;
-    while (*pt>='0' && *pt<='9') pm = pm*10 + (*pt++ - '0');
-    if (*pt==':') pt++;
-    while (*pt>='0' && *pt<='9') ps = ps*10 + (*pt++ - '0');
-    int remaining = pm*60 + ps;
-    int period_len = (s_period <= 3) ? 1200 : 300;
-    int elapsed = period_len - remaining;
-    if (elapsed < 0) elapsed = 0;
-    int bar_w = (w * elapsed) / period_len;
-    graphics_context_set_fill_color(ctx, GColorDarkGray);
-    graphics_fill_rect(ctx, GRect(0, by+44, w, 2), 0, GCornerNone);
-    graphics_context_set_fill_color(ctx, GColorYellow);
-    graphics_fill_rect(ctx, GRect(0, by+44, bar_w, 2), 0, GCornerNone);
-  }
-
   // PP indicator on the period line
   if (strcmp(s_status, "live") == 0 && s_away_skaters != s_home_skaters) {
     bool away_pp = (s_away_skaters > s_home_skaters);
