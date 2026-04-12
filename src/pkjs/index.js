@@ -22,8 +22,9 @@ var KEY_HOME_SKATERS = 22;
 var KEY_PENALTY_SECS = 23;
 var KEY_NEXT_GAME    = 24;
 var KEY_BATTERY_BAR  = 25;
-var KEY_TICKER       = 26;
-var KEY_TZ_OFFSET    = 31;
+var KEY_TICKER        = 26;
+var KEY_SERIES_STATUS = 27;
+var KEY_TZ_OFFSET     = 31;
 var KEY_TICKER_SPEED = 32;
 
 // NHL Web API — free, no key required
@@ -486,6 +487,8 @@ function processGameWeek(gameWeek, abbr) {
   msg[KEY_NEXT_GAME]    = nextGame;
   msg[KEY_BATTERY_BAR]  = gBatteryBar ? 1 : 0;
   msg[KEY_TICKER]       = ticker;
+  msg[KEY_SERIES_STATUS] = (myGame.seriesSummary && myGame.seriesSummary.seriesStatusShort)
+    ? myGame.seriesSummary.seriesStatusShort : "";
 
   // For live or final games: fetch gamecenter (SOG, last goal, clock) + standings (records) in parallel
   if ((status === "live" || status === "final") && myGame.id) {

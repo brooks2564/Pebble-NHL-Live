@@ -24,6 +24,7 @@
 #define KEY_NEXT_GAME     24
 #define KEY_BATTERY_BAR   25
 #define KEY_TICKER        26
+#define KEY_SERIES_STATUS 27
 #define KEY_TZ_OFFSET     31
 #define KEY_TICKER_SPEED  32
 
@@ -86,6 +87,13 @@ static int  s_team_idx        = 26;  // TOR default
 static int  s_prev_score      = -1;
 static bool s_i_am_away;
 static int  s_ticker_speed    = 5000;
+
+static bool s_goal_flash       = false;
+static bool s_goal_away        = false;
+static bool s_goal_blink_on    = true;
+static AppTimer *s_goal_timer  = NULL;
+static AppTimer *s_blink_timer = NULL;
+static char s_series[48]       = "";
 
 static GBitmap *s_bmp_stick   = NULL;
 static GBitmap *s_bmp_cleaner = NULL;
@@ -191,8 +199,7 @@ static GColor team_color(const char *abbr) {
 }
 
 static void draw_team_text(GContext *ctx, const char *text, GFont font, GRect rect,
-                           GTextOverflowMode overflow, GTextAlignment align, const char *abbr) {
-  GColor color = team_color(abbr);
+                           GTextOverflowMode overflow, GTextAlignment align, GColor color) {
   GRect shadow = rect;
   shadow.origin.x += 1;
   shadow.origin.y += 1;
@@ -273,6 +280,33 @@ static void draw_power_play(GContext *ctx, int x, int y) {
   }
 }
 
+// ── Goal Flash ─────────────────────────────────────────────────────────────
+static void goal_blink_tick(void *data);
+
+static void goal_flash_stop(void *data) {
+  s_goal_flash = false;
+  s_goal_blink_on = true;
+  s_goal_timer = NULL;
+  if (s_blink_timer) { app_timer_cancel(s_blink_timer); s_blink_timer = NULL; }
+  if (s_canvas) layer_mark_dirty(s_canvas);
+}
+
+static void goal_blink_tick(void *data) {
+  s_goal_blink_on = !s_goal_blink_on;
+  s_blink_timer = app_timer_register(500, goal_blink_tick, NULL);
+  if (s_canvas) layer_mark_dirty(s_canvas);
+}
+
+static void start_goal_flash(bool away) {
+  s_goal_flash = true;
+  s_goal_away = away;
+  s_goal_blink_on = true;
+  if (s_goal_timer)  { app_timer_cancel(s_goal_timer);  s_goal_timer  = NULL; }
+  if (s_blink_timer) { app_timer_cancel(s_blink_timer); s_blink_timer = NULL; }
+  s_goal_timer  = app_timer_register(10000, goal_flash_stop, NULL);
+  s_blink_timer = app_timer_register(500,   goal_blink_tick, NULL);
+}
+
 // ── Canvas ─────────────────────────────────────────────────────────────────
 static void canvas_update(Layer *layer, GContext *ctx) {
   GRect b = layer_get_bounds(layer);
@@ -338,15 +372,20 @@ static void canvas_update(Layer *layer, GContext *ctx) {
 
   // Score
 #ifdef PBL_COLOR
+  GColor away_col = (s_goal_flash && s_goal_away)
+    ? (s_goal_blink_on ? GColorChromeYellow : GColorWhite) : team_color(s_away_abbr);
+  GColor home_col = (s_goal_flash && !s_goal_away)
+    ? (s_goal_blink_on ? GColorChromeYellow : GColorWhite) : team_color(s_home_abbr);
   draw_team_text(ctx, s_away_abbr, f24, GRect(hpad, by-8, 44, 22),
-    GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, s_away_abbr);
+    GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, away_col);
   char sc[16];
   snprintf(sc, sizeof(sc), "%d - %d", s_away_score, s_home_score);
-  graphics_context_set_text_color(ctx, GColorWhite);
+  GColor score_col = (s_goal_flash && s_goal_blink_on) ? GColorChromeYellow : GColorWhite;
+  graphics_context_set_text_color(ctx, score_col);
   graphics_draw_text(ctx, sc, f28,
     GRect(w/2-28, by-8, 56, 28), GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
   draw_team_text(ctx, s_home_abbr, f24, GRect(w-44-hpad, by-8, 44, 22),
-    GTextOverflowModeTrailingEllipsis, GTextAlignmentRight, s_home_abbr);
+    GTextOverflowModeTrailingEllipsis, GTextAlignmentRight, home_col);
 #else
   graphics_context_set_text_color(ctx, GColorWhite);
   graphics_draw_text(ctx, s_away_abbr, f24,
@@ -359,15 +398,21 @@ static void canvas_update(Layer *layer, GContext *ctx) {
     GRect(w-44-hpad, by-8, 44, 22), GTextOverflowModeTrailingEllipsis, GTextAlignmentRight, NULL);
 #endif
 
-  // Records
-  graphics_context_set_text_color(ctx, GColorLightGray);
-  char rec[10];
-  snprintf(rec, sizeof(rec), "%d-%d", s_away_wins, s_away_losses);
-  graphics_draw_text(ctx, rec, f14,
-    GRect(hpad, by+14, 44, 14), GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
-  snprintf(rec, sizeof(rec), "%d-%d", s_home_wins, s_home_losses);
-  graphics_draw_text(ctx, rec, f14,
-    GRect(w-46-hpad, by+14, 46, 14), GTextOverflowModeWordWrap, GTextAlignmentRight, NULL);
+  // Records (or playoff series status)
+  if (s_series[0]) {
+    graphics_context_set_text_color(ctx, GColorChromeYellow);
+    graphics_draw_text(ctx, s_series, f14,
+      GRect(hpad, by+14, w-hpad*2, 14), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+  } else {
+    graphics_context_set_text_color(ctx, GColorLightGray);
+    char rec[10];
+    snprintf(rec, sizeof(rec), "%d-%d", s_away_wins, s_away_losses);
+    graphics_draw_text(ctx, rec, f14,
+      GRect(hpad, by+14, 44, 14), GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
+    snprintf(rec, sizeof(rec), "%d-%d", s_home_wins, s_home_losses);
+    graphics_draw_text(ctx, rec, f14,
+      GRect(w-46-hpad, by+14, 46, 14), GTextOverflowModeWordWrap, GTextAlignmentRight, NULL);
+  }
 
   // Period display
   char per[20];
@@ -383,9 +428,28 @@ static void canvas_update(Layer *layer, GContext *ctx) {
   } else {
     snprintf(per, sizeof(per), "Final");
   }
-  graphics_context_set_text_color(ctx, GColorYellow);
+  graphics_context_set_text_color(ctx, (strcmp(s_status,"live")==0 && s_period==5) ? GColorOrange : GColorYellow);
   graphics_draw_text(ctx, per, f18,
     GRect(0, by+26, w, 20), GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+
+  // Period progress bar
+  if (strcmp(s_status,"live")==0 && s_period>=1 && s_period<=4 &&
+      s_period_time[0] && strcmp(s_period_time,"INT")!=0) {
+    const char *pt = s_period_time;
+    int pm = 0, ps = 0;
+    while (*pt>='0' && *pt<='9') pm = pm*10 + (*pt++ - '0');
+    if (*pt==':') pt++;
+    while (*pt>='0' && *pt<='9') ps = ps*10 + (*pt++ - '0');
+    int remaining = pm*60 + ps;
+    int period_len = (s_period <= 3) ? 1200 : 300;
+    int elapsed = period_len - remaining;
+    if (elapsed < 0) elapsed = 0;
+    int bar_w = (w * elapsed) / period_len;
+    graphics_context_set_fill_color(ctx, GColorDarkGray);
+    graphics_fill_rect(ctx, GRect(0, by+44, w, 2), 0, GCornerNone);
+    graphics_context_set_fill_color(ctx, GColorYellow);
+    graphics_fill_rect(ctx, GRect(0, by+44, bar_w, 2), 0, GCornerNone);
+  }
 
   // PP indicator on the period line
   if (strcmp(s_status, "live") == 0 && s_away_skaters != s_home_skaters) {
@@ -433,10 +497,33 @@ static void canvas_update(Layer *layer, GContext *ctx) {
     GRect(hpad+32, by+62, w-hpad-34, 14), GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
 
   // Power play display
+  // Penalty countdown bar
+  if (s_penalty_secs > 0) {
+    int psecs = s_penalty_secs > 120 ? 120 : s_penalty_secs;
+    int bar_w = (w * psecs) / 120;
+    graphics_context_set_fill_color(ctx, GColorDarkGray);
+    graphics_fill_rect(ctx, GRect(0, by+76, w, 2), 0, GCornerNone);
+    graphics_context_set_fill_color(ctx, GColorOrange);
+    graphics_fill_rect(ctx, GRect(0, by+76, bar_w, 2), 0, GCornerNone);
+  }
+
   draw_power_play(ctx, hpad, by+78);
 
-  // Icon: stick+puck during play, ice cleaner during intermission
-  {
+  // Icon area: goal light during flash, otherwise stick+puck / zamboni
+  if (s_goal_flash) {
+    int r = 20;
+    int cx = w - r - hpad - 4;
+    int cy = h - 3 - 6 - r;
+#ifdef PBL_COLOR
+    graphics_context_set_fill_color(ctx, s_goal_blink_on ? GColorRed : GColorDarkCandyAppleRed);
+#else
+    graphics_context_set_fill_color(ctx, s_goal_blink_on ? GColorWhite : GColorDarkGray);
+#endif
+    graphics_fill_circle(ctx, GPoint(cx, cy), r);
+    graphics_context_set_text_color(ctx, GColorWhite);
+    graphics_draw_text(ctx, "GOAL!", f14,
+      GRect(cx-r, cy-6, r*2, 14), GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+  } else {
     GBitmap *icon = (strcmp(s_period_time, "INT") == 0) ? s_bmp_cleaner : s_bmp_stick;
     if (icon) {
       GRect ib = gbitmap_get_bounds(icon);
@@ -471,6 +558,7 @@ static void inbox_received(DictionaryIterator *iter, void *ctx) {
   t = dict_find(iter, KEY_HOME_ABBR);
   if (t) { strncpy(s_home_abbr, t->value->cstring, 4); s_home_abbr[4]=0; }
   s_i_am_away = strcmp(s_away_abbr, TEAM_ABBR[s_team_idx])==0;
+  int prev_away_score = s_away_score, prev_home_score = s_home_score;
   t = dict_find(iter, KEY_AWAY_SCORE);  if(t) s_away_score  =(int)t->value->int32;
   t = dict_find(iter, KEY_HOME_SCORE);  if(t) s_home_score  =(int)t->value->int32;
   t = dict_find(iter, KEY_PERIOD);      if(t) s_period      =(int)t->value->int32;
@@ -519,6 +607,15 @@ static void inbox_received(DictionaryIterator *iter, void *ctx) {
     if(s_prev_score>=0 && my>s_prev_score) vibes_double_pulse();
     s_prev_score=my;
   } else s_prev_score=-1;
+
+  // Goal flash: detect score increase
+  if (strcmp(s_status,"live")==0) {
+    if (s_away_score > prev_away_score) start_goal_flash(true);
+    else if (s_home_score > prev_home_score) start_goal_flash(false);
+  }
+
+  t = dict_find(iter, KEY_SERIES_STATUS);
+  if(t){strncpy(s_series,t->value->cstring,47);s_series[47]=0;}
 
   t = dict_find(iter, KEY_TEAM_IDX);
   if(t){
@@ -586,6 +683,8 @@ static void window_load(Window *window) {
 }
 
 static void window_unload(Window *window) {
+  if(s_goal_timer) {app_timer_cancel(s_goal_timer);  s_goal_timer =NULL;}
+  if(s_blink_timer){app_timer_cancel(s_blink_timer); s_blink_timer=NULL;}
   if(s_ticker_timer){app_timer_cancel(s_ticker_timer);s_ticker_timer=NULL;}
   if(s_ticker_cur) {text_layer_destroy(s_ticker_cur); s_ticker_cur=NULL;}
   if(s_ticker_next){text_layer_destroy(s_ticker_next);s_ticker_next=NULL;}

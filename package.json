@@ -49,6 +49,7 @@
       "NEXT_GAME":    24,
       "BATTERY_BAR":  25,
       "TICKER":       26,
+      "SERIES_STATUS": 27,
       "TZ_OFFSET":    31,
       "TICKER_SPEED": 32
     },
