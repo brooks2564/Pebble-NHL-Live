@@ -227,39 +227,53 @@ function fetchGamecenterLanding(gameId, callback) {
   xhr.send();
 }
 
-// Extract last goal scorer from gamecenter landing data
-function extractLastGoal(data) {
-  if (!data) return "";
+// Extract last goal, SOG, and clock from gamecenter landing data
+function extractGamecenterData(data) {
+  var result = { lastGoal: "", awaySog: 0, homeSog: 0, perTime: "" };
+  if (!data) return result;
+
+  // Last goal scorer
   try {
-    var scoring = data.summary && data.summary.scoring;
-    if (!Array.isArray(scoring) || scoring.length === 0) return "";
-    // Find the last period with goals
+    var scoring = (data.summary && data.summary.scoring) || [];
     var lastGoal = null;
     for (var p = 0; p < scoring.length; p++) {
-      var period = scoring[p];
-      var goals  = period.goals || [];
-      for (var g = 0; g < goals.length; g++) {
-        lastGoal = goals[g];
+      var goals = scoring[p].goals || [];
+      for (var g = 0; g < goals.length; g++) lastGoal = goals[g];
+    }
+    if (lastGoal) {
+      var scorer = "";
+      if (lastGoal.firstName && lastGoal.lastName) {
+        scorer = (lastGoal.firstName.default || "") + " " + (lastGoal.lastName.default || "");
+      } else if (lastGoal.name && lastGoal.name.default) {
+        scorer = lastGoal.name.default;
+      }
+      scorer = scorer.trim();
+      var goalNum = lastGoal.goalsToDate || lastGoal.total || 0;
+      result.lastGoal = scorer + (goalNum ? " (" + goalNum + ")" : "");
+      if (result.lastGoal.length > 19) result.lastGoal = result.lastGoal.substring(0, 19);
+    }
+  } catch(e) { console.log("[NHL] lastGoal error: " + e); }
+
+  // Shots on goal from teamGameStats
+  try {
+    var stats = (data.summary && data.summary.teamGameStats) || [];
+    for (var i = 0; i < stats.length; i++) {
+      if ((stats[i].category || "").toLowerCase() === "sog") {
+        result.awaySog = parseInt(stats[i].awayValue) || 0;
+        result.homeSog = parseInt(stats[i].homeValue) || 0;
+        break;
       }
     }
-    if (!lastGoal) return "";
-    // Scorer name: try "name.default", fall back to firstName + lastName
-    var scorer = "";
-    if (lastGoal.firstName && lastGoal.lastName) {
-      scorer = (lastGoal.firstName.default || "") + " " + (lastGoal.lastName.default || "");
-    } else if (lastGoal.name && lastGoal.name.default) {
-      scorer = lastGoal.name.default;
+  } catch(e) { console.log("[NHL] SOG error: " + e); }
+
+  // Period clock
+  try {
+    if (data.clock) {
+      result.perTime = data.clock.inIntermission ? "INT" : (data.clock.timeRemaining || "");
     }
-    scorer = scorer.trim();
-    // Format: "Scorer (N)" where N is goal number
-    var goalNum = lastGoal.goalsToDate || lastGoal.total || 0;
-    var result  = scorer + (goalNum ? " (" + goalNum + ")" : "");
-    if (result.length > 19) result = result.substring(0, 19);
-    return result;
-  } catch(e) {
-    console.log("[NHL] extractLastGoal error: " + e);
-    return "";
-  }
+  } catch(e) { console.log("[NHL] clock error: " + e); }
+
+  return result;
 }
 
 // ── Main game fetch ────────────────────────────────────────────────────────
@@ -322,8 +336,34 @@ function processGameWeek(gameWeek, abbr) {
   var awayTeam = myGame.awayTeam || {};
   var homeTeam = myGame.homeTeam || {};
 
-  var awayRec = parseRecord(awayTeam.record || "");
-  var homeRec = parseRecord(homeTeam.record || "");
+  // Log what the API actually gives us for debugging
+  console.log("[NHL] gameType=" + myGame.gameType +
+    " away.record=" + awayTeam.record +
+    " away.sog=" + awayTeam.sog +
+    " home.sog=" + homeTeam.sog +
+    " situation=" + JSON.stringify(myGame.situation) +
+    " clock=" + JSON.stringify(myGame.clock));
+
+  // Records: playoffs (gameType=3) may return series record "0-0" — try season wins/losses fields too
+  var awayWins = 0, awayLosses = 0, homeWins = 0, homeLosses = 0;
+  if (myGame.gameType === 3) {
+    // Playoff series wins (seriesWins / seriesLosses if available)
+    awayWins   = awayTeam.seriesWins   || 0;
+    awayLosses = awayTeam.seriesLosses || 0;
+    homeWins   = homeTeam.seriesWins   || 0;
+    homeLosses = homeTeam.seriesLosses || 0;
+  } else {
+    var awayRec = parseRecord(awayTeam.record || "");
+    var homeRec = parseRecord(homeTeam.record || "");
+    awayWins   = awayRec.wins;
+    awayLosses = awayRec.losses;
+    homeWins   = homeRec.wins;
+    homeLosses = homeRec.losses;
+  }
+
+  // SOG: try schedule API fields first
+  var awaySog = awayTeam.sog || awayTeam.shotsOnGoal || 0;
+  var homeSog = homeTeam.sog || homeTeam.shotsOnGoal || 0;
 
   // Situation / power play
   var sit         = myGame.situation || {};
@@ -331,11 +371,14 @@ function processGameWeek(gameWeek, abbr) {
   var skaters     = parseSituationCode(sitCode);
   var penaltySecs = penaltyTimeToSecs(sit.timeRemaining || "");
 
-  // Period info
+  // Period info (use periodDescriptor.number as primary; schedule clock as fallback)
   var pd      = myGame.periodDescriptor || {};
-  var perIdx  = periodIndex(myGame.period, pd.periodType);
-  var perTime = (myGame.clock && myGame.clock.timeRemaining) || "";
-  if (myGame.clock && myGame.clock.inIntermission) perTime = "INT";
+  var perNum  = pd.number || myGame.period || 1;
+  var perIdx  = periodIndex(perNum, pd.periodType);
+  var perTime = "";
+  if (myGame.clock) {
+    perTime = myGame.clock.inIntermission ? "INT" : (myGame.clock.timeRemaining || "");
+  }
 
   if (status === "final") {
     nextGame = findNextGame(gameWeek, abbr, today);
@@ -350,13 +393,13 @@ function processGameWeek(gameWeek, abbr) {
   msg[KEY_PERIOD_TIME]  = perTime;
   msg[KEY_STATUS]       = status;
   msg[KEY_START_TIME]   = formatStartTime(myGame.startTimeUTC || "");
-  msg[KEY_AWAY_WINS]    = awayRec.wins;
-  msg[KEY_AWAY_LOSSES]  = awayRec.losses;
-  msg[KEY_HOME_WINS]    = homeRec.wins;
-  msg[KEY_HOME_LOSSES]  = homeRec.losses;
+  msg[KEY_AWAY_WINS]    = awayWins;
+  msg[KEY_AWAY_LOSSES]  = awayLosses;
+  msg[KEY_HOME_WINS]    = homeWins;
+  msg[KEY_HOME_LOSSES]  = homeLosses;
   msg[KEY_VIBRATE]      = gVibrate    ? 1 : 0;
-  msg[KEY_AWAY_SHOTS]   = awayTeam.sog || 0;
-  msg[KEY_HOME_SHOTS]   = homeTeam.sog || 0;
+  msg[KEY_AWAY_SHOTS]   = awaySog;
+  msg[KEY_HOME_SHOTS]   = homeSog;
   msg[KEY_LAST_GOAL]    = "";
   msg[KEY_AWAY_SKATERS] = skaters.awaySkaters;
   msg[KEY_HOME_SKATERS] = skaters.homeSkaters;
@@ -365,10 +408,14 @@ function processGameWeek(gameWeek, abbr) {
   msg[KEY_BATTERY_BAR]  = gBatteryBar ? 1 : 0;
   msg[KEY_TICKER]       = ticker;
 
-  // For live or final games, fetch gamecenter to get last goal scorer
+  // For live or final games, fetch gamecenter for last goal, SOG, and clock
   if ((status === "live" || status === "final") && myGame.id) {
     fetchGamecenterLanding(myGame.id, function(gcData) {
-      msg[KEY_LAST_GOAL] = extractLastGoal(gcData);
+      var gc = extractGamecenterData(gcData);
+      msg[KEY_LAST_GOAL]   = gc.lastGoal;
+      if (gc.awaySog > 0)  msg[KEY_AWAY_SHOTS]  = gc.awaySog;
+      if (gc.homeSog > 0)  msg[KEY_HOME_SHOTS]  = gc.homeSog;
+      if (gc.perTime)      msg[KEY_PERIOD_TIME] = gc.perTime;
       sendMessage(msg);
     });
     return;

@@ -148,6 +148,46 @@ static void ticker_parse_and_start(void) {
     s_ticker_timer = app_timer_register((uint32_t)s_ticker_speed, ticker_advance, NULL);
 }
 
+// ── Team colors ────────────────────────────────────────────────────────────
+#ifdef PBL_COLOR
+static GColor team_color(const char *abbr) {
+  if (!abbr) return GColorWhite;
+  if (strcmp(abbr,"ANA")==0) return GColorOrange;
+  if (strcmp(abbr,"BOS")==0) return GColorYellow;
+  if (strcmp(abbr,"BUF")==0) return GColorCobaltBlue;
+  if (strcmp(abbr,"CAR")==0) return GColorRed;
+  if (strcmp(abbr,"CBJ")==0) return GColorCobaltBlue;
+  if (strcmp(abbr,"CGY")==0) return GColorRed;
+  if (strcmp(abbr,"CHI")==0) return GColorRed;
+  if (strcmp(abbr,"COL")==0) return GColorImperialPurple;
+  if (strcmp(abbr,"DAL")==0) return GColorIslamicGreen;
+  if (strcmp(abbr,"DET")==0) return GColorRed;
+  if (strcmp(abbr,"EDM")==0) return GColorOrange;
+  if (strcmp(abbr,"FLA")==0) return GColorRed;
+  if (strcmp(abbr,"LAK")==0) return GColorLightGray;
+  if (strcmp(abbr,"MIN")==0) return GColorIslamicGreen;
+  if (strcmp(abbr,"MTL")==0) return GColorRed;
+  if (strcmp(abbr,"NJD")==0) return GColorRed;
+  if (strcmp(abbr,"NSH")==0) return GColorYellow;
+  if (strcmp(abbr,"NYI")==0) return GColorOrange;
+  if (strcmp(abbr,"NYR")==0) return GColorCobaltBlue;
+  if (strcmp(abbr,"OTT")==0) return GColorRed;
+  if (strcmp(abbr,"PHI")==0) return GColorOrange;
+  if (strcmp(abbr,"PIT")==0) return GColorYellow;
+  if (strcmp(abbr,"SEA")==0) return GColorTiffanyBlue;
+  if (strcmp(abbr,"SJS")==0) return GColorTiffanyBlue;
+  if (strcmp(abbr,"STL")==0) return GColorCobaltBlue;
+  if (strcmp(abbr,"TBL")==0) return GColorCobaltBlue;
+  if (strcmp(abbr,"TOR")==0) return GColorCobaltBlue;
+  if (strcmp(abbr,"UTA")==0) return GColorCobaltBlue;
+  if (strcmp(abbr,"VAN")==0) return GColorCobaltBlue;
+  if (strcmp(abbr,"VGK")==0) return GColorYellow;
+  if (strcmp(abbr,"WSH")==0) return GColorRed;
+  if (strcmp(abbr,"WPG")==0) return GColorCobaltBlue;
+  return GColorWhite;
+}
+#endif
+
 // ── Dots ───────────────────────────────────────────────────────────────────
 static void draw_dots(GContext *ctx, int x, int y, int n, int filled) {
   for (int i = 0; i < n; i++) {
@@ -163,26 +203,28 @@ static void draw_dots(GContext *ctx, int x, int y, int n, int filled) {
 }
 
 // ── Power Play Display ─────────────────────────────────────────────────────
-// Draws skater dots for each team + penalty time remaining
+// Two rows of skater dots (team color), PP/5v5+time to the right of dots
 static void draw_power_play(GContext *ctx, int x, int y) {
-  bool is_pp = (s_away_skaters != s_home_skaters);
+  bool is_pp   = (s_away_skaters != s_home_skaters);
   bool away_pp = (s_away_skaters > s_home_skaters);
+  GFont f14    = fonts_get_system_font(FONT_KEY_GOTHIC_14);
 
-  GFont f14 = fonts_get_system_font(FONT_KEY_GOTHIC_14);
+#ifdef PBL_COLOR
+  GColor away_col = (is_pp && away_pp)  ? GColorYellow : team_color(s_away_abbr);
+  GColor home_col = (is_pp && !away_pp) ? GColorYellow : team_color(s_home_abbr);
+#else
+  GColor away_col = GColorWhite;
+  GColor home_col = GColorWhite;
+#endif
 
-  // Away skater dots (top row)
+  // Away row
   graphics_context_set_text_color(ctx, GColorLightGray);
   graphics_draw_text(ctx, s_away_abbr, f14, GRect(x, y, 28, 14),
     GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
-  // Highlight the team with the man advantage
-  if (is_pp && away_pp)
-    graphics_context_set_fill_color(ctx, GColorYellow);
-  else
-    graphics_context_set_fill_color(ctx, GColorWhite);
   for (int i = 0; i < 5; i++) {
     GPoint p = GPoint(x + 32 + i * 8, y + 7);
     if (i < s_away_skaters) {
-      graphics_context_set_fill_color(ctx, (is_pp && away_pp) ? GColorYellow : GColorWhite);
+      graphics_context_set_fill_color(ctx, away_col);
       graphics_fill_circle(ctx, p, 3);
     } else {
       graphics_context_set_stroke_color(ctx, GColorDarkGray);
@@ -190,14 +232,14 @@ static void draw_power_play(GContext *ctx, int x, int y) {
     }
   }
 
-  // Home skater dots (bottom row)
+  // Home row
   graphics_context_set_text_color(ctx, GColorLightGray);
   graphics_draw_text(ctx, s_home_abbr, f14, GRect(x, y + 14, 28, 14),
     GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
   for (int i = 0; i < 5; i++) {
     GPoint p = GPoint(x + 32 + i * 8, y + 21);
     if (i < s_home_skaters) {
-      graphics_context_set_fill_color(ctx, (is_pp && !away_pp) ? GColorYellow : GColorWhite);
+      graphics_context_set_fill_color(ctx, home_col);
       graphics_fill_circle(ctx, p, 3);
     } else {
       graphics_context_set_stroke_color(ctx, GColorDarkGray);
@@ -205,22 +247,22 @@ static void draw_power_play(GContext *ctx, int x, int y) {
     }
   }
 
-  // PP label + penalty time
+  // PP/5v5 + penalty time to the RIGHT of dots (x+76), vertically centered
   if (is_pp) {
     graphics_context_set_text_color(ctx, GColorYellow);
-    graphics_draw_text(ctx, "PP", f14, GRect(x, y + 28, 20, 14),
+    graphics_draw_text(ctx, "PP", f14, GRect(x + 76, y + 3, 20, 14),
       GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
     if (s_penalty_secs > 0) {
       char pen[8];
       int m = s_penalty_secs / 60, s2 = s_penalty_secs % 60;
       snprintf(pen, sizeof(pen), "%d:%02d", m, s2);
       graphics_context_set_text_color(ctx, GColorRed);
-      graphics_draw_text(ctx, pen, f14, GRect(x + 22, y + 28, 40, 14),
+      graphics_draw_text(ctx, pen, f14, GRect(x + 76, y + 15, 44, 14),
         GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
     }
   } else {
-    graphics_context_set_text_color(ctx, GColorDarkGray);
-    graphics_draw_text(ctx, "5v5", f14, GRect(x, y + 28, 28, 14),
+    graphics_context_set_text_color(ctx, GColorLightGray);
+    graphics_draw_text(ctx, "5v5", f14, GRect(x + 76, y + 10, 28, 14),
       GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
   }
 }
