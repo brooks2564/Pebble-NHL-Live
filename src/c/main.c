@@ -704,6 +704,7 @@ static void window_unload(Window *window) {
   for(int i=0;i<12;i++){if(s_bmp_goal[i]){gbitmap_destroy(s_bmp_goal[i]);s_bmp_goal[i]=NULL;}}
 }
 
+
 static void init(void) {
   s_game_count=0; s_game_idx=0;
   memset(s_ticker_raw,0,sizeof(s_ticker_raw));
@@ -730,6 +731,7 @@ static void init(void) {
   app_message_register_inbox_received(inbox_received);
   app_message_register_inbox_dropped(inbox_dropped);
   request_game_data();
+
 }
 
 static void deinit(void) {
