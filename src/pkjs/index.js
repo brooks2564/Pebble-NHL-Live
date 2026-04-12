@@ -492,6 +492,22 @@ function processGameWeek(gameWeek, abbr) {
   msg[KEY_SERIES_STATUS] = (myGame.seriesSummary && myGame.seriesSummary.seriesStatusShort)
     ? myGame.seriesSummary.seriesStatusShort : "";
 
+  // For pre-game: fetch standings only (no gamecenter data yet)
+  if (status === "pre") {
+    fetchStandings(awayTeam.abbrev || "", homeTeam.abbrev || "", function(r) {
+      if (r) {
+        msg[KEY_AWAY_WINS]   = r.awayWins;
+        msg[KEY_AWAY_LOSSES] = r.awayLosses;
+        msg[KEY_AWAY_OTL]    = r.awayOtl;
+        msg[KEY_HOME_WINS]   = r.homeWins;
+        msg[KEY_HOME_LOSSES] = r.homeLosses;
+        msg[KEY_HOME_OTL]    = r.homeOtl;
+      }
+      sendMessage(msg);
+    });
+    return;
+  }
+
   // For live or final games: fetch gamecenter (SOG, last goal, clock) + standings (records) in parallel
   if ((status === "live" || status === "final") && myGame.id) {
     var gcDone = false, stDone = false, gcResult = null, stResult = null;
