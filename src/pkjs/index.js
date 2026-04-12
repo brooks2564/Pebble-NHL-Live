@@ -29,6 +29,7 @@ var KEY_TICKER_SPEED = 32;
 // NHL Web API — free, no key required
 var SCHEDULE_URL    = "https://api-web.nhle.com/v1/schedule/now";
 var GAMECENTER_URL  = "https://api-web.nhle.com/v1/gamecenter";
+var STANDINGS_URL   = "https://api-web.nhle.com/v1/standings/now";
 var CONFIG_URL      = "https://brooks2564.github.io/Pebble-NHL-Live/nhl-config.html";
 
 // Must match TEAM_ABBR[] order in main.c exactly (index = KEY_TEAM_IDX value)
@@ -227,9 +228,35 @@ function fetchGamecenterLanding(gameId, callback) {
   xhr.send();
 }
 
-// Extract last goal, SOG, and clock from gamecenter landing data
+// Fetch standings and return {awayWins, awayLosses, homeWins, homeLosses}
+function fetchStandings(awayAbbr, homeAbbr, callback) {
+  var xhr = new XMLHttpRequest();
+  xhr.open("GET", STANDINGS_URL, true);
+  xhr.setRequestHeader("Accept", "application/json");
+  xhr.onload = function() {
+    if (xhr.status !== 200) { callback(null); return; }
+    try {
+      var list = JSON.parse(xhr.responseText).standings || [];
+      var r = { awayWins:0, awayLosses:0, homeWins:0, homeLosses:0 };
+      for (var i = 0; i < list.length; i++) {
+        var t    = list[i];
+        var abbr = (t.teamAbbrev && t.teamAbbrev.default) || "";
+        if (abbr === awayAbbr) { r.awayWins = t.wins||0; r.awayLosses = t.losses||0; }
+        if (abbr === homeAbbr) { r.homeWins = t.wins||0; r.homeLosses = t.losses||0; }
+      }
+      console.log("[NHL] standings " + awayAbbr + " " + r.awayWins + "-" + r.awayLosses +
+                  "  " + homeAbbr + " " + r.homeWins + "-" + r.homeLosses);
+      callback(r);
+    } catch(e) { console.log("[NHL] standings error: " + e); callback(null); }
+  };
+  xhr.onerror = function() { callback(null); };
+  xhr.send();
+}
+
+// Extract last goal, SOG, clock, and records from gamecenter landing data
 function extractGamecenterData(data) {
-  var result = { lastGoal: "", awaySog: 0, homeSog: 0, perTime: "" };
+  var result = { lastGoal: "", awaySog: 0, homeSog: 0, perTime: "",
+                 awayWins: -1, awayLosses: -1, homeWins: -1, homeLosses: -1 };
   if (!data) return result;
 
   // Last goal scorer
@@ -254,14 +281,21 @@ function extractGamecenterData(data) {
     }
   } catch(e) { console.log("[NHL] lastGoal error: " + e); }
 
-  // Shots on goal from teamGameStats
+  // Shots on goal — direct sog field on team objects (gamecenter)
   try {
-    var stats = (data.summary && data.summary.teamGameStats) || [];
-    for (var i = 0; i < stats.length; i++) {
-      if ((stats[i].category || "").toLowerCase() === "sog") {
-        result.awaySog = parseInt(stats[i].awayValue) || 0;
-        result.homeSog = parseInt(stats[i].homeValue) || 0;
-        break;
+    var at2 = data.awayTeam || {};
+    var ht2 = data.homeTeam || {};
+    result.awaySog = parseInt(at2.sog) || 0;
+    result.homeSog = parseInt(ht2.sog) || 0;
+    // Fallback: teamGameStats array
+    if (!result.awaySog && !result.homeSog) {
+      var stats = (data.summary && data.summary.teamGameStats) || [];
+      for (var i = 0; i < stats.length; i++) {
+        if ((stats[i].category || "").toLowerCase() === "sog") {
+          result.awaySog = parseInt(stats[i].awayValue) || 0;
+          result.homeSog = parseInt(stats[i].homeValue) || 0;
+          break;
+        }
       }
     }
   } catch(e) { console.log("[NHL] SOG error: " + e); }
@@ -272,6 +306,7 @@ function extractGamecenterData(data) {
       result.perTime = data.clock.inIntermission ? "INT" : (data.clock.timeRemaining || "");
     }
   } catch(e) { console.log("[NHL] clock error: " + e); }
+
 
   return result;
 }
@@ -336,13 +371,7 @@ function processGameWeek(gameWeek, abbr) {
   var awayTeam = myGame.awayTeam || {};
   var homeTeam = myGame.homeTeam || {};
 
-  // Log what the API actually gives us for debugging
-  console.log("[NHL] gameType=" + myGame.gameType +
-    " away.record=" + awayTeam.record +
-    " away.sog=" + awayTeam.sog +
-    " home.sog=" + homeTeam.sog +
-    " situation=" + JSON.stringify(myGame.situation) +
-    " clock=" + JSON.stringify(myGame.clock));
+  console.log("[NHL] gameType=" + myGame.gameType + " status=" + status);
 
   // Records: playoffs (gameType=3) may return series record "0-0" — try season wins/losses fields too
   var awayWins = 0, awayLosses = 0, homeWins = 0, homeLosses = 0;
@@ -408,16 +437,26 @@ function processGameWeek(gameWeek, abbr) {
   msg[KEY_BATTERY_BAR]  = gBatteryBar ? 1 : 0;
   msg[KEY_TICKER]       = ticker;
 
-  // For live or final games, fetch gamecenter for last goal, SOG, and clock
+  // For live or final games: fetch gamecenter (SOG, last goal, clock) + standings (records) in parallel
   if ((status === "live" || status === "final") && myGame.id) {
-    fetchGamecenterLanding(myGame.id, function(gcData) {
-      var gc = extractGamecenterData(gcData);
-      msg[KEY_LAST_GOAL]   = gc.lastGoal;
-      if (gc.awaySog > 0)  msg[KEY_AWAY_SHOTS]  = gc.awaySog;
-      if (gc.homeSog > 0)  msg[KEY_HOME_SHOTS]  = gc.homeSog;
-      if (gc.perTime)      msg[KEY_PERIOD_TIME] = gc.perTime;
+    var gcDone = false, stDone = false, gcResult = null, stResult = null;
+    function trySend() {
+      if (!gcDone || !stDone) return;
+      var gc = extractGamecenterData(gcResult);
+      msg[KEY_LAST_GOAL]  = gc.lastGoal;
+      if (gc.awaySog > 0) msg[KEY_AWAY_SHOTS]  = gc.awaySog;
+      if (gc.homeSog > 0) msg[KEY_HOME_SHOTS]  = gc.homeSog;
+      if (gc.perTime)     msg[KEY_PERIOD_TIME] = gc.perTime;
+      if (stResult) {
+        msg[KEY_AWAY_WINS]   = stResult.awayWins;
+        msg[KEY_AWAY_LOSSES] = stResult.awayLosses;
+        msg[KEY_HOME_WINS]   = stResult.homeWins;
+        msg[KEY_HOME_LOSSES] = stResult.homeLosses;
+      }
       sendMessage(msg);
-    });
+    }
+    fetchGamecenterLanding(myGame.id, function(data) { gcResult = data; gcDone = true; trySend(); });
+    fetchStandings(awayTeam.abbrev || "", homeTeam.abbrev || "", function(r) { stResult = r; stDone = true; trySend(); });
     return;
   }
 
