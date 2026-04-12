@@ -330,13 +330,23 @@ static void canvas_update(Layer *layer, GContext *ctx) {
 
   // Battery bar
   if (s_battery_bar) {
+    GColor bc = s_battery_pct > 50 ? GColorGreen :
+                s_battery_pct > 20 ? GColorYellow : GColorRed;
+#ifdef PBL_ROUND
+    int32_t arc_start = DEG_TO_TRIGANGLE(120);
+    int32_t arc_end   = DEG_TO_TRIGANGLE(240);
+    int32_t arc_fill  = arc_start + (arc_end - arc_start) * s_battery_pct / 100;
+    graphics_context_set_fill_color(ctx, GColorDarkGray);
+    graphics_fill_radial(ctx, b, GOvalScaleModeFitCircle, 5, arc_start, arc_end);
+    graphics_context_set_fill_color(ctx, bc);
+    graphics_fill_radial(ctx, b, GOvalScaleModeFitCircle, 5, arc_start, arc_fill);
+#else
     int bw = (w * s_battery_pct) / 100;
     graphics_context_set_fill_color(ctx, GColorDarkGray);
     graphics_fill_rect(ctx, GRect(0, h-3, w, 3), 0, GCornerNone);
-    GColor bc = s_battery_pct > 50 ? GColorGreen :
-                s_battery_pct > 20 ? GColorYellow : GColorRed;
     graphics_context_set_fill_color(ctx, bc);
     graphics_fill_rect(ctx, GRect(0, h-3, bw, 3), 0, GCornerNone);
+#endif
   }
 
   // Divider
@@ -350,11 +360,19 @@ static void canvas_update(Layer *layer, GContext *ctx) {
 
   // Time + date
   graphics_context_set_text_color(ctx, GColorWhite);
+#ifdef PBL_ROUND
+  graphics_draw_text(ctx, s_time_buf, f24,
+    GRect(0, 2, w, 26), GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+  graphics_context_set_text_color(ctx, GColorLightGray);
+  graphics_draw_text(ctx, s_date_buf, f14,
+    GRect(0, 14, w, 14), GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+#else
   graphics_draw_text(ctx, s_time_buf, f24,
     GRect(hpad, 2, 72, 26), GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
   graphics_context_set_text_color(ctx, GColorLightGray);
   graphics_draw_text(ctx, s_date_buf, f14,
     GRect(74, 6, w-74-hpad, 16), GTextOverflowModeWordWrap, GTextAlignmentRight, NULL);
+#endif
 
   // No game
   if (strcmp(s_status, "off") == 0) {
@@ -497,25 +515,20 @@ static void canvas_update(Layer *layer, GContext *ctx) {
   draw_power_play(ctx, hpad, by+78);
 
   // Icon area: animated goal light during flash, otherwise stick+puck / zamboni
-  if (s_goal_flash) {
-    GBitmap *frame = s_bmp_goal[s_goal_frame];
-    if (frame) {
-      GRect ib = gbitmap_get_bounds(frame);
+  {
+    GBitmap *bmp = s_goal_flash ? s_bmp_goal[s_goal_frame]
+                 : (strcmp(s_period_time, "INT") == 0) ? s_bmp_cleaner : s_bmp_stick;
+    if (bmp) {
+      GRect ib = gbitmap_get_bounds(bmp);
       int iw = ib.size.w, ih = ib.size.h;
       int iy = h - 3 - 5 - ih;
+#ifdef PBL_ROUND
+      int ix = (w - iw) / 2;
+#else
       int ix = w - iw - hpad;
+#endif
       graphics_context_set_compositing_mode(ctx, GCompOpAssign);
-      graphics_draw_bitmap_in_rect(ctx, frame, GRect(ix, iy, iw, ih));
-    }
-  } else {
-    GBitmap *icon = (strcmp(s_period_time, "INT") == 0) ? s_bmp_cleaner : s_bmp_stick;
-    if (icon) {
-      GRect ib = gbitmap_get_bounds(icon);
-      int iw = ib.size.w, ih = ib.size.h;
-      int iy = h - 3 - 5 - ih;
-      int ix = w - iw - hpad;
-      graphics_context_set_compositing_mode(ctx, GCompOpAssign);
-      graphics_draw_bitmap_in_rect(ctx, icon, GRect(ix, iy, iw, ih));
+      graphics_draw_bitmap_in_rect(ctx, bmp, GRect(ix, iy, iw, ih));
     }
   }
 }
