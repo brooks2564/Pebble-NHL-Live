@@ -415,8 +415,12 @@ static void canvas_update(Layer *layer, GContext *ctx) {
   {
     GBitmap *icon = (strcmp(s_period_time, "INT") == 0) ? s_bmp_cleaner : s_bmp_stick;
     if (icon) {
+      GRect ib = gbitmap_get_bounds(icon);
+      int iw = ib.size.w, ih = ib.size.h;
+      int iy = h - 3 - 5 - ih;
+      int ix = w - iw - hpad;
       graphics_context_set_compositing_mode(ctx, GCompOpAssign);
-      graphics_draw_bitmap_in_rect(ctx, icon, GRect(w - 66 - hpad, by + 79, 64, 23));
+      graphics_draw_bitmap_in_rect(ctx, icon, GRect(ix, iy, iw, ih));
     }
   }
 }
