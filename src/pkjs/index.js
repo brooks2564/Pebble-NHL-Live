@@ -93,6 +93,16 @@ function todayDateStr() {
     (dd < 10 ? "0" + dd : dd);
 }
 
+function yesterdayDateStr() {
+  var d  = new Date();
+  d.setDate(d.getDate() - 1);
+  var mm = d.getMonth() + 1;
+  var dd = d.getDate();
+  return d.getFullYear() + "-" +
+    (mm < 10 ? "0" + mm : mm) + "-" +
+    (dd < 10 ? "0" + dd : dd);
+}
+
 function formatStartTime(isoStr) {
   if (!isoStr) return "";
   try {
@@ -347,21 +357,53 @@ function fetchGameData(teamIdx) {
 
 function processGameWeek(gameWeek, abbr) {
   var today    = todayDateStr();
-  var allGames = [];
-  var myGame   = null;
+  var yesterday = yesterdayDateStr();
+  var allGames  = [];
+  var myGame    = null;
 
-  // Find today's day block and my team's game
+  // Collect today's games for the ticker
   for (var d = 0; d < gameWeek.length; d++) {
-    var day = gameWeek[d];
-    var gs  = day.games || [];
-    if ((day.date || "") === today) {
-      allGames = gs;
+    if ((gameWeek[d].date || "") === today) { allGames = gameWeek[d].games || []; break; }
+  }
+
+  // Pass 1: any LIVE game (crosses midnight — highest priority regardless of date)
+  for (var d = 0; d < gameWeek.length && !myGame; d++) {
+    var gs = gameWeek[d].games || [];
+    for (var i = 0; i < gs.length; i++) {
+      var g = gs[i];
+      var away = (g.awayTeam && g.awayTeam.abbrev) || "";
+      var home = (g.homeTeam && g.homeTeam.abbrev) || "";
+      if ((away === abbr || home === abbr) && apiStateToStatus(g.gameState) === "live") {
+        myGame = g; break;
+      }
+    }
+  }
+
+  // Pass 2: FINAL from today or yesterday (keep showing score after midnight)
+  if (!myGame) {
+    for (var d = 0; d < gameWeek.length && !myGame; d++) {
+      var dayDate = gameWeek[d].date || "";
+      if (dayDate !== today && dayDate !== yesterday) continue;
+      var gs = gameWeek[d].games || [];
       for (var i = 0; i < gs.length; i++) {
-        var g    = gs[i];
+        var g = gs[i];
         var away = (g.awayTeam && g.awayTeam.abbrev) || "";
         var home = (g.homeTeam && g.homeTeam.abbrev) || "";
-        if (away === abbr || home === abbr) { myGame = g; break; }
+        if ((away === abbr || home === abbr) && apiStateToStatus(g.gameState) === "final") {
+          myGame = g; break;
+        }
       }
+    }
+  }
+
+  // Pass 3: any game today (pre-game / upcoming)
+  if (!myGame) {
+    var gs = allGames;
+    for (var i = 0; i < gs.length; i++) {
+      var g = gs[i];
+      var away = (g.awayTeam && g.awayTeam.abbrev) || "";
+      var home = (g.homeTeam && g.homeTeam.abbrev) || "";
+      if (away === abbr || home === abbr) { myGame = g; break; }
     }
   }
 
