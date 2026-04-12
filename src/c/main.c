@@ -247,22 +247,13 @@ static void draw_power_play(GContext *ctx, int x, int y) {
     }
   }
 
-  // PP/5v5 + penalty time to the RIGHT of dots (x+76), vertically centered
-  if (is_pp) {
-    graphics_context_set_text_color(ctx, GColorYellow);
-    graphics_draw_text(ctx, "PP", f14, GRect(x + 76, y + 3, 20, 14),
-      GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
-    if (s_penalty_secs > 0) {
-      char pen[8];
-      int m = s_penalty_secs / 60, s2 = s_penalty_secs % 60;
-      snprintf(pen, sizeof(pen), "%d:%02d", m, s2);
-      graphics_context_set_text_color(ctx, GColorRed);
-      graphics_draw_text(ctx, pen, f14, GRect(x + 76, y + 15, 44, 14),
-        GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
-    }
-  } else {
-    graphics_context_set_text_color(ctx, GColorLightGray);
-    graphics_draw_text(ctx, "5v5", f14, GRect(x + 76, y + 10, 28, 14),
+  // Penalty time below dots (only during PP)
+  if (is_pp && s_penalty_secs > 0) {
+    char pen[8];
+    int m = s_penalty_secs / 60, s2 = s_penalty_secs % 60;
+    snprintf(pen, sizeof(pen), "%d:%02d", m, s2);
+    graphics_context_set_text_color(ctx, GColorRed);
+    graphics_draw_text(ctx, pen, f14, GRect(x + 76, y + 10, 44, 14),
       GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
   }
 }
@@ -387,7 +378,8 @@ static void canvas_update(Layer *layer, GContext *ctx) {
       GRect(hpad, by+46, w-hpad*2, 14), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
   }
 
-  // Shots on goal
+  // Shots on goal + situation label (5v5 or PP) right-aligned
+  bool is_pp_live = (s_away_skaters != s_home_skaters);
   graphics_context_set_text_color(ctx, GColorMediumAquamarine);
   graphics_draw_text(ctx, "SOG", f14,
     GRect(hpad, by+62, 30, 14), GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
@@ -395,7 +387,14 @@ static void canvas_update(Layer *layer, GContext *ctx) {
   snprintf(sog, sizeof(sog), "%d | %d", s_away_shots, s_home_shots);
   graphics_context_set_text_color(ctx, GColorWhite);
   graphics_draw_text(ctx, sog, f14,
-    GRect(hpad+32, by+62, w-hpad-34, 14), GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
+    GRect(hpad+32, by+62, w/2 - hpad - 32, 14), GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
+#ifdef PBL_COLOR
+  graphics_context_set_text_color(ctx, is_pp_live ? GColorYellow : GColorLightGray);
+#else
+  graphics_context_set_text_color(ctx, GColorWhite);
+#endif
+  graphics_draw_text(ctx, is_pp_live ? "PP" : "5v5", f14,
+    GRect(w*2/3, by+62, w/3 - hpad, 14), GTextOverflowModeWordWrap, GTextAlignmentRight, NULL);
 
   // Power play display
   draw_power_play(ctx, hpad, by+78);
