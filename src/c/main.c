@@ -416,7 +416,7 @@ static void canvas_update(Layer *layer, GContext *ctx) {
     GBitmap *icon = (strcmp(s_period_time, "INT") == 0) ? s_bmp_cleaner : s_bmp_stick;
     if (icon) {
       graphics_context_set_compositing_mode(ctx, GCompOpAssign);
-      graphics_draw_bitmap_in_rect(ctx, icon, GRect(w - 62 - hpad, by + 79, 60, 26));
+      graphics_draw_bitmap_in_rect(ctx, icon, GRect(w - 66 - hpad, by + 79, 64, 23));
     }
   }
 }
