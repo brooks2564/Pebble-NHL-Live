@@ -205,28 +205,60 @@ static void draw_dots(GContext *ctx, int x, int y, int n, int filled) {
 // ── 8-bit icons ────────────────────────────────────────────────────────────
 static void draw_icon_stick_puck(GContext *ctx, int ix, int iy) {
   graphics_context_set_fill_color(ctx, GColorWhite);
-  // Shaft: 7 diagonal 2×2 blocks, top-right to lower-left
-  for (int i = 0; i < 7; i++)
-    graphics_fill_rect(ctx, GRect(ix + 12 - i*2, iy + i*2, 2, 2), 0, GCornerNone);
-  // Blade: horizontal bar at bottom of shaft
-  graphics_fill_rect(ctx, GRect(ix, iy+14, 10, 2), 0, GCornerNone);
-  // Puck: small filled square beside the blade
-  graphics_fill_rect(ctx, GRect(ix+13, iy+12, 5, 4), 0, GCornerNone);
+  // Shaft: 10 diagonal segments, 4×3px each, top-right to lower-left
+  for (int i = 0; i < 10; i++)
+    graphics_fill_rect(ctx, GRect(ix+44-i*4, iy+i*2, 4, 3), 0, GCornerNone);
+  // Blade
+  graphics_fill_rect(ctx, GRect(ix,    iy+22, 22, 3), 0, GCornerNone);
+  // Puck body
+  graphics_fill_rect(ctx, GRect(ix+42, iy+13, 16, 10), 0, GCornerNone);
+  // Puck corner cuts
+  graphics_context_set_fill_color(ctx, GColorBlack);
+  graphics_fill_rect(ctx, GRect(ix+42, iy+13, 2, 2), 0, GCornerNone);
+  graphics_fill_rect(ctx, GRect(ix+56, iy+13, 2, 2), 0, GCornerNone);
+  graphics_fill_rect(ctx, GRect(ix+42, iy+21, 2, 2), 0, GCornerNone);
+  graphics_fill_rect(ctx, GRect(ix+56, iy+21, 2, 2), 0, GCornerNone);
 }
 
 static void draw_icon_zamboni(GContext *ctx, int ix, int iy) {
   graphics_context_set_fill_color(ctx, GColorWhite);
   // Exhaust pipe
-  graphics_fill_rect(ctx, GRect(ix+14, iy,    2, 4), 0, GCornerNone);
-  // Cab (top section, right side)
-  graphics_fill_rect(ctx, GRect(ix+8,  iy+2,  8, 4), 0, GCornerNone);
-  // Front scraper (left protrusion)
-  graphics_fill_rect(ctx, GRect(ix,    iy+4,  2, 6), 0, GCornerNone);
+  graphics_fill_rect(ctx, GRect(ix+46, iy+0,  4, 6), 0, GCornerNone);
+  // Steam puffs
+  graphics_fill_rect(ctx, GRect(ix+43, iy+0,  2, 2), 0, GCornerNone);
+  graphics_fill_rect(ctx, GRect(ix+51, iy+0,  2, 2), 0, GCornerNone);
+  // Cab
+  graphics_fill_rect(ctx, GRect(ix+26, iy+2, 24, 8), 0, GCornerNone);
+  // Cab window (cut)
+  graphics_context_set_fill_color(ctx, GColorBlack);
+  graphics_fill_rect(ctx, GRect(ix+30, iy+3,  6, 5), 0, GCornerNone);
   // Main body
-  graphics_fill_rect(ctx, GRect(ix+2,  iy+4, 18, 6), 0, GCornerNone);
-  // Wheels
-  graphics_fill_rect(ctx, GRect(ix+3,  iy+10, 4, 4), 0, GCornerNone);
-  graphics_fill_rect(ctx, GRect(ix+13, iy+10, 4, 4), 0, GCornerNone);
+  graphics_context_set_fill_color(ctx, GColorWhite);
+  graphics_fill_rect(ctx, GRect(ix+0,  iy+8, 54,10), 0, GCornerNone);
+  // Front scraper arm
+  graphics_fill_rect(ctx, GRect(ix+0,  iy+16, 4, 4), 0, GCornerNone);
+  // Rear resurfacing bar
+  graphics_fill_rect(ctx, GRect(ix+50, iy+16, 4, 4), 0, GCornerNone);
+  // Left wheel
+  graphics_fill_rect(ctx, GRect(ix+6,  iy+18,14, 8), 0, GCornerNone);
+  graphics_context_set_fill_color(ctx, GColorBlack);
+  graphics_fill_rect(ctx, GRect(ix+6,  iy+18, 2, 2), 0, GCornerNone);
+  graphics_fill_rect(ctx, GRect(ix+18, iy+18, 2, 2), 0, GCornerNone);
+  graphics_fill_rect(ctx, GRect(ix+6,  iy+24, 2, 2), 0, GCornerNone);
+  graphics_fill_rect(ctx, GRect(ix+18, iy+24, 2, 2), 0, GCornerNone);
+  graphics_fill_rect(ctx, GRect(ix+10, iy+20, 6, 4), 0, GCornerNone);
+  graphics_context_set_fill_color(ctx, GColorWhite);
+  graphics_fill_rect(ctx, GRect(ix+12, iy+21, 2, 2), 0, GCornerNone);
+  // Right wheel
+  graphics_fill_rect(ctx, GRect(ix+34, iy+18,14, 8), 0, GCornerNone);
+  graphics_context_set_fill_color(ctx, GColorBlack);
+  graphics_fill_rect(ctx, GRect(ix+34, iy+18, 2, 2), 0, GCornerNone);
+  graphics_fill_rect(ctx, GRect(ix+46, iy+18, 2, 2), 0, GCornerNone);
+  graphics_fill_rect(ctx, GRect(ix+34, iy+24, 2, 2), 0, GCornerNone);
+  graphics_fill_rect(ctx, GRect(ix+46, iy+24, 2, 2), 0, GCornerNone);
+  graphics_fill_rect(ctx, GRect(ix+38, iy+20, 6, 4), 0, GCornerNone);
+  graphics_context_set_fill_color(ctx, GColorWhite);
+  graphics_fill_rect(ctx, GRect(ix+40, iy+21, 2, 2), 0, GCornerNone);
 }
 
 // ── Power Play Display ─────────────────────────────────────────────────────
@@ -437,7 +469,7 @@ static void canvas_update(Layer *layer, GContext *ctx) {
 
   // 8-bit icon: stick+puck during play, zamboni during intermission
   {
-    int ix = w - 22 - hpad;
+    int ix = w - 60 - hpad;
     int iy = by + 79;
     if (strcmp(s_period_time, "INT") == 0)
       draw_icon_zamboni(ctx, ix, iy);
