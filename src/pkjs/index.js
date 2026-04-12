@@ -253,10 +253,11 @@ function fetchStandings(awayAbbr, homeAbbr, callback) {
   xhr.send();
 }
 
-// Extract last goal, SOG, clock, and records from gamecenter landing data
+// Extract last goal, SOG, clock, situation, and records from gamecenter landing data
 function extractGamecenterData(data) {
   var result = { lastGoal: "", awaySog: 0, homeSog: 0, perTime: "",
-                 awayWins: -1, awayLosses: -1, homeWins: -1, homeLosses: -1 };
+                 awayWins: -1, awayLosses: -1, homeWins: -1, homeLosses: -1,
+                 situationCode: "", penaltySecs: -1 };
   if (!data) return result;
 
   // Last goal scorer
@@ -307,6 +308,13 @@ function extractGamecenterData(data) {
     }
   } catch(e) { console.log("[NHL] clock error: " + e); }
 
+  // Situation (power play)
+  try {
+    if (data.situation) {
+      result.situationCode = data.situation.situationCode || "";
+      result.penaltySecs   = penaltyTimeToSecs(data.situation.timeRemaining || "");
+    }
+  } catch(e) { console.log("[NHL] situation error: " + e); }
 
   return result;
 }
@@ -447,6 +455,12 @@ function processGameWeek(gameWeek, abbr) {
       if (gc.awaySog > 0) msg[KEY_AWAY_SHOTS]  = gc.awaySog;
       if (gc.homeSog > 0) msg[KEY_HOME_SHOTS]  = gc.homeSog;
       if (gc.perTime)     msg[KEY_PERIOD_TIME] = gc.perTime;
+      if (gc.situationCode) {
+        var sk = parseSituationCode(gc.situationCode);
+        msg[KEY_AWAY_SKATERS] = sk.awaySkaters;
+        msg[KEY_HOME_SKATERS] = sk.homeSkaters;
+      }
+      if (gc.penaltySecs >= 0) msg[KEY_PENALTY_SECS] = gc.penaltySecs;
       if (stResult) {
         msg[KEY_AWAY_WINS]   = stResult.awayWins;
         msg[KEY_AWAY_LOSSES] = stResult.awayLosses;

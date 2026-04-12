@@ -332,27 +332,52 @@ static void canvas_update(Layer *layer, GContext *ctx) {
   graphics_draw_text(ctx, s_home_abbr, f24,
     GRect(w-44-hpad, by-8, 44, 22), GTextOverflowModeTrailingEllipsis, GTextAlignmentRight, NULL);
 
-  // Records
-  graphics_context_set_text_color(ctx, GColorLightGray);
-  char rec[10];
-  snprintf(rec, sizeof(rec), "%d-%d", s_away_wins, s_away_losses);
-  graphics_draw_text(ctx, rec, f14,
-    GRect(hpad, by+14, 44, 14), GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
-  snprintf(rec, sizeof(rec), "%d-%d", s_home_wins, s_home_losses);
-  graphics_draw_text(ctx, rec, f14,
-    GRect(w-46-hpad, by+14, 46, 14), GTextOverflowModeWordWrap, GTextAlignmentRight, NULL);
+  // Records — during a power play, replace the PP team's record with "PP" in yellow
+  {
+    bool is_pp = (strcmp(s_status,"live")==0) && (s_away_skaters != s_home_skaters);
+    bool away_pp = (s_away_skaters > s_home_skaters);
+    char rec[10];
+    // Away side
+    if (is_pp && away_pp) {
+#ifdef PBL_COLOR
+      graphics_context_set_text_color(ctx, GColorYellow);
+#else
+      graphics_context_set_text_color(ctx, GColorWhite);
+#endif
+      graphics_draw_text(ctx, "PP", f14,
+        GRect(hpad, by+14, 44, 14), GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
+    } else {
+      graphics_context_set_text_color(ctx, GColorLightGray);
+      snprintf(rec, sizeof(rec), "%d-%d", s_away_wins, s_away_losses);
+      graphics_draw_text(ctx, rec, f14,
+        GRect(hpad, by+14, 44, 14), GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
+    }
+    // Home side
+    if (is_pp && !away_pp) {
+#ifdef PBL_COLOR
+      graphics_context_set_text_color(ctx, GColorYellow);
+#else
+      graphics_context_set_text_color(ctx, GColorWhite);
+#endif
+      graphics_draw_text(ctx, "PP", f14,
+        GRect(w-46-hpad, by+14, 46, 14), GTextOverflowModeWordWrap, GTextAlignmentRight, NULL);
+    } else {
+      graphics_context_set_text_color(ctx, GColorLightGray);
+      snprintf(rec, sizeof(rec), "%d-%d", s_home_wins, s_home_losses);
+      graphics_draw_text(ctx, rec, f14,
+        GRect(w-46-hpad, by+14, 46, 14), GTextOverflowModeWordWrap, GTextAlignmentRight, NULL);
+    }
+  }
 
   // Period display
   char per[20];
   if (strcmp(s_status, "live") == 0) {
     const char *per_names[] = {"1st","2nd","3rd","OT","SO"};
     int pidx = (s_period >= 1 && s_period <= 5) ? s_period-1 : 0;
-    bool is_pp_live = (s_away_skaters != s_home_skaters);
-    const char *sit = is_pp_live ? " PP" : " 5v5";
     if (s_period_time[0])
-      snprintf(per, sizeof(per), "%s %s%s", per_names[pidx], s_period_time, sit);
+      snprintf(per, sizeof(per), "%s %s", per_names[pidx], s_period_time);
     else
-      snprintf(per, sizeof(per), "%s%s", per_names[pidx], sit);
+      snprintf(per, sizeof(per), "%s", per_names[pidx]);
   } else if (strcmp(s_status, "pre") == 0) {
     snprintf(per, sizeof(per), "%s", s_start_time[0] ? s_start_time : "Pre-Game");
   } else {
