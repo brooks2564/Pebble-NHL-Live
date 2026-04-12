@@ -95,8 +95,10 @@ static AppTimer *s_goal_timer  = NULL;
 static AppTimer *s_blink_timer = NULL;
 static char s_series[48]       = "";
 
-static GBitmap *s_bmp_stick   = NULL;
-static GBitmap *s_bmp_cleaner = NULL;
+static GBitmap *s_bmp_stick      = NULL;
+static GBitmap *s_bmp_cleaner    = NULL;
+static GBitmap *s_bmp_goal[12]   = {NULL};
+static int      s_goal_frame      = 0;
 
 static void request_game_data(void);
 
@@ -285,22 +287,22 @@ static void goal_blink_tick(void *data);
 
 static void goal_flash_stop(void *data) {
   s_goal_flash = false;
-  s_goal_blink_on = true;
+  s_goal_frame = 0;
   s_goal_timer = NULL;
   if (s_blink_timer) { app_timer_cancel(s_blink_timer); s_blink_timer = NULL; }
   if (s_canvas) layer_mark_dirty(s_canvas);
 }
 
 static void goal_blink_tick(void *data) {
-  s_goal_blink_on = !s_goal_blink_on;
-  s_blink_timer = app_timer_register(500, goal_blink_tick, NULL);
+  s_goal_frame = (s_goal_frame + 1) % 12;
+  s_blink_timer = app_timer_register(70, goal_blink_tick, NULL);
   if (s_canvas) layer_mark_dirty(s_canvas);
 }
 
 static void start_goal_flash(bool away) {
   s_goal_flash = true;
   s_goal_away = away;
-  s_goal_blink_on = true;
+  s_goal_frame = 0;
   if (s_goal_timer)  { app_timer_cancel(s_goal_timer);  s_goal_timer  = NULL; }
   if (s_blink_timer) { app_timer_cancel(s_blink_timer); s_blink_timer = NULL; }
   s_goal_timer  = app_timer_register(10000, goal_flash_stop, NULL);
@@ -509,20 +511,17 @@ static void canvas_update(Layer *layer, GContext *ctx) {
 
   draw_power_play(ctx, hpad, by+78);
 
-  // Icon area: goal light during flash, otherwise stick+puck / zamboni
+  // Icon area: animated goal light during flash, otherwise stick+puck / zamboni
   if (s_goal_flash) {
-    int r = 20;
-    int cx = w - r - hpad - 4;
-    int cy = h - 3 - 6 - r;
-#ifdef PBL_COLOR
-    graphics_context_set_fill_color(ctx, s_goal_blink_on ? GColorRed : GColorDarkCandyAppleRed);
-#else
-    graphics_context_set_fill_color(ctx, s_goal_blink_on ? GColorWhite : GColorDarkGray);
-#endif
-    graphics_fill_circle(ctx, GPoint(cx, cy), r);
-    graphics_context_set_text_color(ctx, GColorWhite);
-    graphics_draw_text(ctx, "GOAL!", f14,
-      GRect(cx-r, cy-6, r*2, 14), GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
+    GBitmap *frame = s_bmp_goal[s_goal_frame];
+    if (frame) {
+      GRect ib = gbitmap_get_bounds(frame);
+      int iw = ib.size.w, ih = ib.size.h;
+      int iy = h - 3 - 5 - ih;
+      int ix = w - iw - hpad;
+      graphics_context_set_compositing_mode(ctx, GCompOpAssign);
+      graphics_draw_bitmap_in_rect(ctx, frame, GRect(ix, iy, iw, ih));
+    }
   } else {
     GBitmap *icon = (strcmp(s_period_time, "INT") == 0) ? s_bmp_cleaner : s_bmp_stick;
     if (icon) {
@@ -660,6 +659,16 @@ static void window_load(Window *window) {
 
   s_bmp_stick   = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_STICK_PUCK);
   s_bmp_cleaner = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_ICE_CLEANER);
+  static const uint32_t goal_res[12] = {
+    RESOURCE_ID_IMAGE_GOAL_0,  RESOURCE_ID_IMAGE_GOAL_1,
+    RESOURCE_ID_IMAGE_GOAL_2,  RESOURCE_ID_IMAGE_GOAL_3,
+    RESOURCE_ID_IMAGE_GOAL_4,  RESOURCE_ID_IMAGE_GOAL_5,
+    RESOURCE_ID_IMAGE_GOAL_6,  RESOURCE_ID_IMAGE_GOAL_7,
+    RESOURCE_ID_IMAGE_GOAL_8,  RESOURCE_ID_IMAGE_GOAL_9,
+    RESOURCE_ID_IMAGE_GOAL_10, RESOURCE_ID_IMAGE_GOAL_11,
+  };
+  for (int i = 0; i < 12; i++)
+    s_bmp_goal[i] = gbitmap_create_with_resource(goal_res[i]);
 
   s_canvas=layer_create(bounds);
   layer_set_update_proc(s_canvas,canvas_update);
@@ -692,6 +701,7 @@ static void window_unload(Window *window) {
   if(s_canvas)     {layer_destroy(s_canvas);          s_canvas=NULL;}
   if(s_bmp_stick)  {gbitmap_destroy(s_bmp_stick);     s_bmp_stick=NULL;}
   if(s_bmp_cleaner){gbitmap_destroy(s_bmp_cleaner);   s_bmp_cleaner=NULL;}
+  for(int i=0;i<12;i++){if(s_bmp_goal[i]){gbitmap_destroy(s_bmp_goal[i]);s_bmp_goal[i]=NULL;}}
 }
 
 static void init(void) {

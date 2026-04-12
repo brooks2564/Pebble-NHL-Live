@@ -64,7 +64,19 @@
           "type": "bitmap",
           "name": "IMAGE_ICE_CLEANER",
           "file": "images/ice_cleaner.png"
-        }
+        },
+        { "type": "bitmap", "name": "IMAGE_GOAL_0",  "file": "images/goal_0.png"  },
+        { "type": "bitmap", "name": "IMAGE_GOAL_1",  "file": "images/goal_1.png"  },
+        { "type": "bitmap", "name": "IMAGE_GOAL_2",  "file": "images/goal_2.png"  },
+        { "type": "bitmap", "name": "IMAGE_GOAL_3",  "file": "images/goal_3.png"  },
+        { "type": "bitmap", "name": "IMAGE_GOAL_4",  "file": "images/goal_4.png"  },
+        { "type": "bitmap", "name": "IMAGE_GOAL_5",  "file": "images/goal_5.png"  },
+        { "type": "bitmap", "name": "IMAGE_GOAL_6",  "file": "images/goal_6.png"  },
+        { "type": "bitmap", "name": "IMAGE_GOAL_7",  "file": "images/goal_7.png"  },
+        { "type": "bitmap", "name": "IMAGE_GOAL_8",  "file": "images/goal_8.png"  },
+        { "type": "bitmap", "name": "IMAGE_GOAL_9",  "file": "images/goal_9.png"  },
+        { "type": "bitmap", "name": "IMAGE_GOAL_10", "file": "images/goal_10.png" },
+        { "type": "bitmap", "name": "IMAGE_GOAL_11", "file": "images/goal_11.png" }
       ]
     }
   }
