@@ -204,7 +204,7 @@ function buildTicker(games, myAbbr) {
 function findNextGame(gameWeek, myAbbr, today) {
   for (var d = 0; d < gameWeek.length; d++) {
     var day = gameWeek[d];
-    if ((day.date || "") <= today) continue;
+    if ((day.date || "") < today) continue;
     var gs = day.games || [];
     for (var i = 0; i < gs.length; i++) {
       var g    = gs[i];
