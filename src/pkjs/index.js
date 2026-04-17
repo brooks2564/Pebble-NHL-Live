@@ -332,8 +332,42 @@ function extractGamecenterData(data) {
   return result;
 }
 
+// ── Simulation mode ────────────────────────────────────────────────────────
+var SIM_MODE = true;
+
+function sendSimGame() {
+  var msg = {};
+  msg[KEY_AWAY_ABBR]    = "WSH";
+  msg[KEY_HOME_ABBR]    = "NYR";
+  msg[KEY_AWAY_SCORE]   = 2;
+  msg[KEY_HOME_SCORE]   = 3;
+  msg[KEY_PERIOD]       = 2;
+  msg[KEY_PERIOD_TIME]  = "8:42";
+  msg[KEY_STATUS]       = "live";
+  msg[KEY_START_TIME]   = "7:00 PM";
+  msg[KEY_AWAY_WINS]    = 42;
+  msg[KEY_AWAY_LOSSES]  = 28;
+  msg[KEY_AWAY_OTL]     = 8;
+  msg[KEY_HOME_WINS]    = 38;
+  msg[KEY_HOME_LOSSES]  = 32;
+  msg[KEY_HOME_OTL]     = 7;
+  msg[KEY_VIBRATE]      = gVibrate ? 1 : 0;
+  msg[KEY_AWAY_SHOTS]   = 18;
+  msg[KEY_HOME_SHOTS]   = 22;
+  msg[KEY_LAST_GOAL]    = "Ovechkin (52)";
+  msg[KEY_AWAY_SKATERS] = 5;
+  msg[KEY_HOME_SKATERS] = 5;
+  msg[KEY_PENALTY_SECS] = 0;
+  msg[KEY_NEXT_GAME]    = "";
+  msg[KEY_BATTERY_BAR]  = gBatteryBar ? 1 : 0;
+  msg[KEY_SERIES_STATUS] = "";
+  msg[KEY_TICKER]       = "BOS 2 - TOR 1 P2|FLA 0 - TBL 0 P1|EDM 3 - VAN 2 F";
+  sendMessage(msg);
+}
+
 // ── Main game fetch ────────────────────────────────────────────────────────
 function fetchGameData(teamIdx) {
+  if (SIM_MODE) { sendSimGame(); return; }
   var abbr = TEAMS[teamIdx].abbr;
   console.log("[NHL] Fetching for " + abbr);
   var xhr = new XMLHttpRequest();
