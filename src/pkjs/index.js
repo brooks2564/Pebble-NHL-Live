@@ -28,6 +28,7 @@ var KEY_AWAY_OTL      = 28;
 var KEY_HOME_OTL      = 29;
 var KEY_TZ_OFFSET     = 31;
 var KEY_TICKER_SPEED = 32;
+var KEY_TEAM_LOGOS   = 33;
 
 // NHL Web API — free, no key required
 var SCHEDULE_URL    = "https://api-web.nhle.com/v1/schedule/now";
@@ -75,6 +76,7 @@ var TEAMS = [
 var gTeamIdx    = parseInt(localStorage.getItem("teamIdx")   || "26"); // TOR default
 var gVibrate    = localStorage.getItem("vibrate")    !== "0";
 var gBatteryBar = localStorage.getItem("batteryBar") !== "0";
+var gTeamLogos  = localStorage.getItem("teamLogos")  !== "0";
 var gTzOffset   = parseInt(localStorage.getItem("tzOffset")  || "-5");
 // Ticker speed stored as STRING to avoid Pebble JS number truncation.
 // Pebble's + operator and parseInt truncate multi-digit numbers to 3 chars.
@@ -628,7 +630,8 @@ Pebble.addEventListener("showConfiguration", function() {
     "|" + (gVibrate    ? "1" : "0") +
     "|" + (gBatteryBar ? "1" : "0") +
     "|" + gTzOffset +
-    "|" + gTickerSpeed;
+    "|" + gTickerSpeed +
+    "|" + (gTeamLogos ? "1" : "0");
   console.log("[NHL] showConfiguration url: " + url);
   Pebble.openURL(url);
 });
@@ -645,6 +648,7 @@ Pebble.addEventListener("webviewclosed", function(e) {
     gTeamIdx    = idx;
     gVibrate    = cfg.vibrate    === 1 || cfg.vibrate    === true || cfg.vibrate    === "1";
     gBatteryBar = cfg.batteryBar === 1 || cfg.batteryBar === true || cfg.batteryBar === "1";
+    gTeamLogos  = cfg.teamLogos !== 0 && cfg.teamLogos !== false && cfg.teamLogos !== "0";
     gTzOffset   = parseInt(cfg.tzOffset) || -5;
     // cfg.tickerSpeed is a number. Convert via JSON.stringify (safe against truncation).
     var spdStr = JSON.stringify(cfg.tickerSpeed);
@@ -653,6 +657,7 @@ Pebble.addEventListener("webviewclosed", function(e) {
     localStorage.setItem("teamIdx",     String(gTeamIdx));
     localStorage.setItem("vibrate",     gVibrate    ? "1" : "0");
     localStorage.setItem("batteryBar",  gBatteryBar ? "1" : "0");
+    localStorage.setItem("teamLogos",   gTeamLogos  ? "1" : "0");
     localStorage.setItem("tzOffset",    String(gTzOffset));
     localStorage.setItem("tickerSpeed", gTickerSpeed);
 
@@ -664,6 +669,7 @@ Pebble.addEventListener("webviewclosed", function(e) {
     settingsMsg[KEY_TEAM_IDX]     = gTeamIdx;
     settingsMsg[KEY_VIBRATE]      = gVibrate    ? 1 : 0;
     settingsMsg[KEY_BATTERY_BAR]  = gBatteryBar ? 1 : 0;
+    settingsMsg[KEY_TEAM_LOGOS]   = gTeamLogos  ? 1 : 0;
     settingsMsg[KEY_TZ_OFFSET]    = gTzOffset;
     settingsMsg[KEY_TICKER_SPEED] = SPEED_NUM[gTickerSpeed] || 5000;
     Pebble.sendAppMessage(settingsMsg,

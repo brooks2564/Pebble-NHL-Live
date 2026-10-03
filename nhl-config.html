@@ -103,6 +103,17 @@
       </label>
     </div>
 
+    <div class="toggle-row" style="margin-top:10px">
+      <div>
+        <div class="toggle-label">Team Logos</div>
+        <div class="toggle-sub">Show logos instead of team letters (color watches)</div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="teamLogos" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+
     <div class="divider"></div>
 
     <div class="lbl" style="margin-top:24px">Display</div>
@@ -146,7 +157,7 @@
   </div>
 
   <script>
-    // Hash format: #teamIdx|vibrate|batteryBar|tzOffset|tickerSpeed
+    // Hash format: #teamIdx|vibrate|batteryBar|tzOffset|tickerSpeed|teamLogos
     var hash   = location.hash.replace("#", "");
     var parts  = hash.split("|");
     var savedIdx        = parseInt(parts[0]);
@@ -154,12 +165,14 @@
     var savedBat        = parts[2] !== "0";
     var savedTz         = parts[3] !== undefined ? parseInt(parts[3]) : -5;
     var savedTickerSpd  = parts[4] !== undefined ? parseInt(parts[4]) : 5000;
+    var savedLogos      = parts[5] !== "0";
 
     if (!isNaN(savedIdx) && savedIdx >= 0 && savedIdx <= 31) {
       document.getElementById("team").value = String(savedIdx);
     }
     document.getElementById("vibrate").checked    = savedVib;
     document.getElementById("batteryBar").checked = savedBat;
+    document.getElementById("teamLogos").checked  = savedLogos;
 
     var tzSel = document.getElementById("tzOffset");
     for (var i = 0; i < tzSel.options.length; i++) {
@@ -175,12 +188,14 @@
       var idx        = parseInt(document.getElementById("team").value);
       var vibrate    = document.getElementById("vibrate").checked    ? 1 : 0;
       var batteryBar = document.getElementById("batteryBar").checked ? 1 : 0;
+      var teamLogos  = document.getElementById("teamLogos").checked  ? 1 : 0;
       var tzOffset   = parseInt(document.getElementById("tzOffset").value);
       var tickerSpeed= parseInt(document.getElementById("tickerSpeed").value);
       var payload = JSON.stringify({
         teamIdx: idx,
         vibrate: vibrate,
         batteryBar: batteryBar,
+        teamLogos: teamLogos,
         tzOffset: tzOffset,
         tickerSpeed: tickerSpeed
       });
