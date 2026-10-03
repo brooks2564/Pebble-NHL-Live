@@ -6,7 +6,9 @@
     "pebble-app"
   ],
   "private": true,
-  "dependencies": {},
+  "dependencies": {
+    "pebble-clay": "github:brooks2564/pebble-clay-flint"
+  },
   "pebble": {
     "displayName": "NHL Live",
     "shortName": "NHL Live",

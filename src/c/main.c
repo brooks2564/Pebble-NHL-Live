@@ -31,6 +31,13 @@
 #define KEY_TICKER_SPEED  32
 #define KEY_TEAM_LOGOS    33
 
+// Ticker row height / font match the MLB app
+#ifdef PBL_PLATFORM_EMERY
+#define TICKER_H 24
+#else
+#define TICKER_H 18
+#endif
+
 #define NUM_TEAMS    32
 #define PERSIST_TEAM 1
 #define PERSIST_VIB  2
@@ -122,11 +129,13 @@ static void ticker_update_text(void) {
   else if (s_game_idx < s_game_count) text_layer_set_text(s_ticker_cur, s_games[s_game_idx]);
 }
 
+// The incoming score slides up from below the ticker line and covers the
+// current one. Nothing ever moves above its resting position.
 static void ticker_animation_stopped(Animation *anim, bool finished, void *ctx) {
   int w = layer_get_bounds(s_ticker_clip).size.w;
-  int h = 16;
-  layer_set_frame(text_layer_get_layer(s_ticker_next), GRect(0, 0, w, h));
-  layer_set_frame(text_layer_get_layer(s_ticker_cur),  GRect(0, h, w, h));
+  // The new score is now at rest; park the old layer below the line, ready
+  // to be the next one to slide in.
+  layer_set_frame(text_layer_get_layer(s_ticker_cur), GRect(0, TICKER_H, w, TICKER_H));
   TextLayer *tmp = s_ticker_cur;
   s_ticker_cur   = s_ticker_next;
   s_ticker_next  = tmp;
@@ -139,19 +148,19 @@ static void ticker_advance(void *ctx) {
     int next_idx   = (s_game_idx + 1) % s_game_count;
     const char *nt = (s_game_count == 0) ? s_date_buf : s_games[next_idx];
     text_layer_set_text(s_ticker_next, nt);
-    int w = layer_get_bounds(s_ticker_clip).size.w, h = 16;
-    layer_set_frame(text_layer_get_layer(s_ticker_next), GRect(0, h, w, h));
-    GRect cf = GRect(0, 0, w, h), ct = GRect(0, -h, w, h);
-    GRect nf = GRect(0, h, w, h), nt2= GRect(0,  0, w, h);
-    Animation *ac  = (Animation*)property_animation_create_layer_frame(text_layer_get_layer(s_ticker_cur),  &cf, &ct);
-    Animation *an  = (Animation*)property_animation_create_layer_frame(text_layer_get_layer(s_ticker_next), &nf, &nt2);
-    animation_set_duration(ac, 300); animation_set_duration(an, 300);
-    animation_set_curve(ac, AnimationCurveEaseInOut);
-    animation_set_curve(an, AnimationCurveEaseInOut);
+    int w = layer_get_bounds(s_ticker_clip).size.w;
+    Layer *nl = text_layer_get_layer(s_ticker_next);
+    layer_set_frame(nl, GRect(0, TICKER_H, w, TICKER_H));
+    // Raise above the current layer so it covers it as it slides up
+    layer_remove_from_parent(nl);
+    layer_add_child(s_ticker_clip, nl);
+    GRect from = GRect(0, TICKER_H, w, TICKER_H), to = GRect(0, 0, w, TICKER_H);
+    Animation *an = (Animation*)property_animation_create_layer_frame(nl, &from, &to);
+    animation_set_duration(an, 300);
+    animation_set_curve(an, AnimationCurveEaseOut);
     animation_set_handlers(an, (AnimationHandlers){ .stopped = ticker_animation_stopped }, NULL);
-    Animation *spawn = animation_spawn_create(ac, an, NULL);
     s_anim_running = true;
-    animation_schedule(spawn);
+    animation_schedule(an);
     s_game_idx = next_idx;
   }
   s_ticker_timer = app_timer_register((uint32_t)s_ticker_speed, ticker_advance, NULL);
@@ -470,20 +479,20 @@ static void canvas_update(Layer *layer, GContext *ctx) {
   GFont f_row = f_small;
 #endif
 
-  // Time + date
-  graphics_context_set_text_color(ctx, GColorWhite);
+  // Date (left) + big time (right), filling the row above the ticker
+  graphics_context_set_text_color(ctx, GColorLightGray);
 #ifdef PBL_PLATFORM_EMERY
-  graphics_draw_text(ctx, s_time_buf, f_mid,
-    GRect(hpad, 2, 72, 30), GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
-  graphics_context_set_text_color(ctx, GColorLightGray);
-  graphics_draw_text(ctx, s_date_buf, fonts_get_system_font(FONT_KEY_GOTHIC_24),
-    GRect(68, 2, w-68-hpad, 26), GTextOverflowModeWordWrap, GTextAlignmentRight, NULL);
-#else
-  graphics_draw_text(ctx, s_time_buf, f_mid,
-    GRect(hpad, 2, 60, 24), GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
-  graphics_context_set_text_color(ctx, GColorLightGray);
   graphics_draw_text(ctx, s_date_buf, fonts_get_system_font(FONT_KEY_GOTHIC_18),
-    GRect(56, 2, w-56-hpad, 20), GTextOverflowModeWordWrap, GTextAlignmentRight, NULL);
+    GRect(hpad, 4, 92, 24), GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
+  graphics_context_set_text_color(ctx, GColorWhite);
+  graphics_draw_text(ctx, s_time_buf, fonts_get_system_font(FONT_KEY_BITHAM_34_MEDIUM_NUMBERS),
+    GRect(w - 112 - hpad, -4, 112, 40), GTextOverflowModeWordWrap, GTextAlignmentRight, NULL);
+#else
+  graphics_draw_text(ctx, s_date_buf, fonts_get_system_font(FONT_KEY_GOTHIC_14),
+    GRect(hpad, 8, 66, 16), GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
+  graphics_context_set_text_color(ctx, GColorWhite);
+  graphics_draw_text(ctx, s_time_buf, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD),
+    GRect(w - 76 - hpad, -4, 76, 32), GTextOverflowModeWordWrap, GTextAlignmentRight, NULL);
 #endif
 
   // No game
@@ -758,15 +767,16 @@ static void window_load(Window *window) {
   layer_add_child(root,s_canvas);
 
 #ifdef PBL_PLATFORM_EMERY
-  s_ticker_clip=layer_create(GRect(0,32,w,16));
+  s_ticker_clip=layer_create(GRect(0,32,w,TICKER_H));
+  GFont tf=fonts_get_system_font(FONT_KEY_GOTHIC_24);
 #else
-  s_ticker_clip=layer_create(GRect(0,28,w,16));
+  s_ticker_clip=layer_create(GRect(0,28,w,TICKER_H));
+  GFont tf=fonts_get_system_font(FONT_KEY_GOTHIC_18);
 #endif
   layer_add_child(root,s_ticker_clip);
 
-  GFont tf=fonts_get_system_font(FONT_KEY_GOTHIC_14);
-  s_ticker_cur  =text_layer_create(GRect(0, 0,w,16));
-  s_ticker_next =text_layer_create(GRect(0,16,w,16));
+  s_ticker_cur  =text_layer_create(GRect(0, 0,w,TICKER_H));
+  s_ticker_next =text_layer_create(GRect(0,TICKER_H,w,TICKER_H));
   TextLayer *tls[2]={s_ticker_cur,s_ticker_next};
   for(int i=0;i<2;i++){
     text_layer_set_background_color(tls[i],GColorBlack);

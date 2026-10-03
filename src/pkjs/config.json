@@ -1,0 +1,255 @@
+[
+  {
+    "type": "heading",
+    "defaultValue": "NHL Live"
+  },
+  {
+    "type": "section",
+    "items": [
+      {
+        "type": "heading",
+        "defaultValue": "Favorite Team",
+        "size": 4
+      },
+      {
+        "type": "select",
+        "messageKey": "TEAM_IDX",
+        "label": "Team",
+        "defaultValue": 26,
+        "options": [
+          {
+            "label": "ANA - Ducks",
+            "value": 0
+          },
+          {
+            "label": "BOS - Bruins",
+            "value": 1
+          },
+          {
+            "label": "BUF - Sabres",
+            "value": 2
+          },
+          {
+            "label": "CAR - Hurricanes",
+            "value": 3
+          },
+          {
+            "label": "CBJ - Blue Jackets",
+            "value": 4
+          },
+          {
+            "label": "CGY - Flames",
+            "value": 5
+          },
+          {
+            "label": "CHI - Blackhawks",
+            "value": 6
+          },
+          {
+            "label": "COL - Avalanche",
+            "value": 7
+          },
+          {
+            "label": "DAL - Stars",
+            "value": 8
+          },
+          {
+            "label": "DET - Red Wings",
+            "value": 9
+          },
+          {
+            "label": "EDM - Oilers",
+            "value": 10
+          },
+          {
+            "label": "FLA - Panthers",
+            "value": 11
+          },
+          {
+            "label": "LAK - Kings",
+            "value": 12
+          },
+          {
+            "label": "MIN - Wild",
+            "value": 13
+          },
+          {
+            "label": "MTL - Canadiens",
+            "value": 14
+          },
+          {
+            "label": "NJD - Devils",
+            "value": 15
+          },
+          {
+            "label": "NSH - Predators",
+            "value": 16
+          },
+          {
+            "label": "NYI - Islanders",
+            "value": 17
+          },
+          {
+            "label": "NYR - Rangers",
+            "value": 18
+          },
+          {
+            "label": "OTT - Senators",
+            "value": 19
+          },
+          {
+            "label": "PHI - Flyers",
+            "value": 20
+          },
+          {
+            "label": "PIT - Penguins",
+            "value": 21
+          },
+          {
+            "label": "SEA - Kraken",
+            "value": 22
+          },
+          {
+            "label": "SJS - Sharks",
+            "value": 23
+          },
+          {
+            "label": "STL - Blues",
+            "value": 24
+          },
+          {
+            "label": "TBL - Lightning",
+            "value": 25
+          },
+          {
+            "label": "TOR - Maple Leafs",
+            "value": 26
+          },
+          {
+            "label": "UTA - Hockey Club",
+            "value": 27
+          },
+          {
+            "label": "VAN - Canucks",
+            "value": 28
+          },
+          {
+            "label": "VGK - Golden Knts",
+            "value": 29
+          },
+          {
+            "label": "WSH - Capitals",
+            "value": 30
+          },
+          {
+            "label": "WPG - Jets",
+            "value": 31
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "section",
+    "items": [
+      {
+        "type": "heading",
+        "defaultValue": "Notifications",
+        "size": 4
+      },
+      {
+        "type": "toggle",
+        "messageKey": "VIBRATE",
+        "label": "Vibrate on Goal",
+        "description": "Pulse when your team scores",
+        "defaultValue": true
+      },
+      {
+        "type": "toggle",
+        "messageKey": "BATTERY_BAR",
+        "label": "Battery Bar",
+        "description": "Show battery level at bottom of screen",
+        "defaultValue": true
+      }
+    ]
+  },
+  {
+    "type": "section",
+    "items": [
+      {
+        "type": "heading",
+        "defaultValue": "Display",
+        "size": 4
+      },
+      {
+        "type": "select",
+        "messageKey": "TZ_OFFSET",
+        "label": "Timezone",
+        "description": "Used to display correct game start times",
+        "defaultValue": -5,
+        "options": [
+          {
+            "label": "ET - Eastern (UTC-5)",
+            "value": -5
+          },
+          {
+            "label": "CT - Central (UTC-6)",
+            "value": -6
+          },
+          {
+            "label": "MT - Mountain (UTC-7)",
+            "value": -7
+          },
+          {
+            "label": "PT - Pacific (UTC-8)",
+            "value": -8
+          },
+          {
+            "label": "UK - GMT/BST (UTC+0)",
+            "value": 0
+          },
+          {
+            "label": "CET - Central Europe (UTC+1)",
+            "value": 1
+          }
+        ]
+      },
+      {
+        "type": "select",
+        "messageKey": "TICKER_SPEED",
+        "label": "Ticker Speed",
+        "description": "How long each score shows before cycling",
+        "defaultValue": 5000,
+        "options": [
+          {
+            "label": "5 seconds (default)",
+            "value": 5000
+          },
+          {
+            "label": "10 seconds",
+            "value": 10000
+          },
+          {
+            "label": "30 seconds",
+            "value": 30000
+          },
+          {
+            "label": "60 seconds",
+            "value": 60000
+          }
+        ]
+      },
+      {
+        "type": "toggle",
+        "messageKey": "TEAM_LOGOS",
+        "label": "Team Logos",
+        "description": "Show team logos instead of abbreviations (color platforms only)",
+        "defaultValue": true
+      }
+    ]
+  },
+  {
+    "type": "submit",
+    "defaultValue": "Save Settings"
+  }
+]

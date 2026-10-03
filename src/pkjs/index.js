@@ -1,5 +1,8 @@
 // ── NHL Live Watchface  ·  PebbleKit JS ───────────────────────────────────
 // Keys must match #define KEY_* in main.c exactly
+var Clay = require('pebble-clay');
+var clayConfig = require('./config.json');
+var clay = new Clay(clayConfig);   // autoHandleEvents: true - Clay persists & sends AppMessage
 var KEY_AWAY_ABBR    = 1;
 var KEY_HOME_ABBR    = 2;
 var KEY_AWAY_SCORE   = 3;
@@ -34,7 +37,6 @@ var KEY_TEAM_LOGOS   = 33;
 var SCHEDULE_URL    = "https://api-web.nhle.com/v1/schedule/now";
 var GAMECENTER_URL  = "https://api-web.nhle.com/v1/gamecenter";
 var STANDINGS_URL   = "https://api-web.nhle.com/v1/standings/now";
-var CONFIG_URL      = "https://brooks2564.github.io/Pebble-NHL-Live/nhl-config.html";
 
 // Must match TEAM_ABBR[] order in main.c exactly (index = KEY_TEAM_IDX value)
 var TEAMS = [
@@ -87,6 +89,23 @@ function validSpeedStr(s) {
 var SPEED_NUM    = {"5000":5000,"10000":10000,"30000":30000,"60000":60000};
 var _rawSpd      = localStorage.getItem("tickerSpeed");
 var gTickerSpeed = validSpeedStr(_rawSpd) ? _rawSpd : "5000"; // STRING
+
+// Clay stores all settings as one JSON object under 'clay-settings' in localStorage.
+// The values above are only fallbacks (incl. the pre-Clay settings page's keys).
+function loadFromClay() {
+  var cs = {};
+  try { cs = JSON.parse(localStorage.getItem("clay-settings")) || {}; } catch(e) {}
+  var pIdx = parseInt(cs.TEAM_IDX, 10);
+  if (!isNaN(pIdx) && pIdx >= 0 && pIdx < TEAMS.length) gTeamIdx = pIdx;
+  if (cs.VIBRATE     !== undefined) gVibrate    = !!cs.VIBRATE;
+  if (cs.BATTERY_BAR !== undefined) gBatteryBar = !!cs.BATTERY_BAR;
+  if (cs.TEAM_LOGOS  !== undefined) gTeamLogos  = !!cs.TEAM_LOGOS;
+  var pTz = parseInt(cs.TZ_OFFSET, 10);
+  if (!isNaN(pTz)) gTzOffset = pTz;
+  var spd = cs.TICKER_SPEED !== undefined ? String(cs.TICKER_SPEED) : null;
+  if (validSpeedStr(spd)) gTickerSpeed = spd;
+}
+loadFromClay();
 
 // ── Utility ────────────────────────────────────────────────────────────────
 function todayDateStr() {
@@ -623,59 +642,22 @@ Pebble.addEventListener("appmessage", function(e) {
   fetchGameData(gTeamIdx);
 });
 
-// ── Settings ───────────────────────────────────────────────────────────────
-Pebble.addEventListener("showConfiguration", function() {
-  // gTickerSpeed is a string ("5000", "10000", etc.) — safe to concatenate directly
-  var url = CONFIG_URL + "?v=1" + "#" + gTeamIdx +
-    "|" + (gVibrate    ? "1" : "0") +
-    "|" + (gBatteryBar ? "1" : "0") +
-    "|" + gTzOffset +
-    "|" + gTickerSpeed +
-    "|" + (gTeamLogos ? "1" : "0");
-  console.log("[NHL] showConfiguration url: " + url);
-  Pebble.openURL(url);
-});
-
+// ── Settings (Clay) ────────────────────────────────────────────────────────
+// Clay handles showConfiguration + webviewclosed automatically (saves to localStorage,
+// sends AppMessage to watch). Afterward we refresh our globals and refetch.
+// TEAM_LOGOS is sent manually too, in case Clay's message_keys module omits it.
 Pebble.addEventListener("webviewclosed", function(e) {
-  console.log("[NHL] webviewclosed response: " + e.response);
-  if (!e.response) return;
+  if (!e || !e.response || e.response === "CANCELLED") return;
   try {
-    var cfg = JSON.parse(decodeURIComponent(e.response));
-    console.log("[NHL] webviewclosed cfg: " + JSON.stringify(cfg));
-    var idx = parseInt(cfg.teamIdx);
-    if (isNaN(idx) || idx < 0 || idx >= TEAMS.length) return;
-
-    gTeamIdx    = idx;
-    gVibrate    = cfg.vibrate    === 1 || cfg.vibrate    === true || cfg.vibrate    === "1";
-    gBatteryBar = cfg.batteryBar === 1 || cfg.batteryBar === true || cfg.batteryBar === "1";
-    gTeamLogos  = cfg.teamLogos !== 0 && cfg.teamLogos !== false && cfg.teamLogos !== "0";
-    gTzOffset   = parseInt(cfg.tzOffset) || -5;
-    // cfg.tickerSpeed is a number. Convert via JSON.stringify (safe against truncation).
-    var spdStr = JSON.stringify(cfg.tickerSpeed);
-    gTickerSpeed = validSpeedStr(spdStr) ? spdStr : "5000";
-
-    localStorage.setItem("teamIdx",     String(gTeamIdx));
-    localStorage.setItem("vibrate",     gVibrate    ? "1" : "0");
-    localStorage.setItem("batteryBar",  gBatteryBar ? "1" : "0");
-    localStorage.setItem("teamLogos",   gTeamLogos  ? "1" : "0");
-    localStorage.setItem("tzOffset",    String(gTzOffset));
-    localStorage.setItem("tickerSpeed", gTickerSpeed);
-
-    console.log("[NHL] Settings – team: " + TEAMS[gTeamIdx].abbr +
-      " vibrate: " + gVibrate + " battery: " + gBatteryBar +
-      " tz: " + gTzOffset + " tickerSpeed: " + gTickerSpeed);
-
-    var settingsMsg = {};
-    settingsMsg[KEY_TEAM_IDX]     = gTeamIdx;
-    settingsMsg[KEY_VIBRATE]      = gVibrate    ? 1 : 0;
-    settingsMsg[KEY_BATTERY_BAR]  = gBatteryBar ? 1 : 0;
-    settingsMsg[KEY_TEAM_LOGOS]   = gTeamLogos  ? 1 : 0;
-    settingsMsg[KEY_TZ_OFFSET]    = gTzOffset;
-    settingsMsg[KEY_TICKER_SPEED] = SPEED_NUM[gTickerSpeed] || 5000;
-    Pebble.sendAppMessage(settingsMsg,
-      function() { fetchGameData(gTeamIdx); },
-      function() { fetchGameData(gTeamIdx); }
-    );
+    loadFromClay();
+    setTimeout(function() {
+      var m = {};
+      m[KEY_TEAM_LOGOS] = gTeamLogos ? 1 : 0;
+      Pebble.sendAppMessage(m,
+        function()  { console.log("[NHL] logo key sent OK"); },
+        function(er) { console.log("[NHL] logo key failed: " + JSON.stringify(er)); });
+    }, 600);
+    fetchGameData(gTeamIdx);
   } catch(ex) {
     console.log("[NHL] webviewclosed error: " + ex);
   }
