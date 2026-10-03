@@ -767,10 +767,10 @@ static void window_load(Window *window) {
   layer_add_child(root,s_canvas);
 
 #ifdef PBL_PLATFORM_EMERY
-  s_ticker_clip=layer_create(GRect(0,32,w,TICKER_H));
+  s_ticker_clip=layer_create(GRect(0,30,w,TICKER_H));
   GFont tf=fonts_get_system_font(FONT_KEY_GOTHIC_24);
 #else
-  s_ticker_clip=layer_create(GRect(0,28,w,TICKER_H));
+  s_ticker_clip=layer_create(GRect(0,26,w,TICKER_H));
   GFont tf=fonts_get_system_font(FONT_KEY_GOTHIC_18);
 #endif
   layer_add_child(root,s_ticker_clip);
